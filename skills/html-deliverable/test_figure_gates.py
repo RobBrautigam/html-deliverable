@@ -317,5 +317,56 @@ class TheFourOwedLessons(unittest.TestCase):
         self.assertIn("names nobody", skill.lower())
 
 
+class AGateThatRefusesAGoodFigureIsWorseThanNoGate(unittest.TestCase):
+    """The false refusal the gate shipped with, and the two shapes that produced it.
+
+    A graphviz rounded box is a `<path>` inside `g.node`, not a polygon or an ellipse, so a node
+    selector naming only those two matched NOTHING on a mind map or a tree and refused both as
+    "drew nothing". A line chart draws paths, dots and an axis and has no node box at all, so
+    every box-based rule was a false finding on it. Measured on the components gallery, which
+    produced five false refusals of its own documented components.
+
+    The inversions in `FigureGateInversions` above are the other half of this pair: they prove the
+    gate still FIRES. These two prove it does not fire on a figure that is fine.
+    """
+
+    def test_a_graphviz_diagram_is_not_refused_as_a_blank_figure(self):
+        reason = playwright_available()
+        if reason:
+            self.skipTest(reason)
+        spec = build.DIAGRAM_KINDS["mindmap"]
+        try:
+            build.diagram_binary(spec["layout"], spec["engine"])
+        except SystemExit as missing:
+            self.skipTest(str(missing)[:120])
+        source_md = (
+            "# A page with a mind map\n\nThe lead paragraph.\n\n## The shape of it\n\n"
+            "[diagram: mindmap | What the system holds]\n\n"
+            "```\nThe system\n  Capture\n  Route\n```\n\n"
+            "## After\n\nMore words to give the section a body.\n"
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / "d.md"
+            source.write_text(source_md, encoding="utf-8")
+            page = source.with_suffix(".html")
+            self.assertEqual(build.main([str(source), str(page)]), 0)
+            failures, _ = lint.playwright_check(page, None, [1440])
+        self.assertEqual(
+            [f for f in failures if "drew nothing" in f], [],
+            "a rendered graphviz diagram was refused as a blank figure",
+        )
+
+    def test_the_committed_gallery_passes_its_own_figure_gate(self):
+        """The gallery documents every figure component, so it is the page that proves the gate."""
+        reason = playwright_available()
+        if reason:
+            self.skipTest(reason)
+        failures, _ = lint.playwright_check(HERE / "components.html", None, [1440])
+        self.assertEqual(
+            [f for f in failures if f.startswith("the figure")], [],
+            "the gallery fails the figure gate on its own documented components",
+        )
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -1067,8 +1067,10 @@ def check(
 # every connector `.flow-edge` and every piece of text `.flow-label`, `.flow-note`,
 # `.flow-lane-label` or `.flow-mark-label`, each carrying the `data-node` it belongs to. A d2 or
 # graphviz drawing is measured against the classes those engines write (`g.shape > rect`,
-# `path.connection`), and its connector routing is REPORTED rather than refused, because the
-# router there is the engine and not this skill.
+# `g.node > path`, `path.connection`), and its connector routing is REPORTED rather than refused,
+# because the router there is the engine and not this skill. A CHART is measured only for having
+# drawn marks at all: it has no node boxes, so every box-based rule below would be a false
+# finding on it.
 #
 # Proved by inversion on `fixtures/flow-broken.md`, whose figure is one that shipped on a real
 # page: before the repair it produced 44 findings across three widths and two themes, and its
@@ -1109,8 +1111,23 @@ FIGURE_MEASURE = """(() => {
           'the figure drew rectangles but no rect.flow-node: this page carries an older copy of the flow renderer. Rebuild it with build.py' });
         out.push(entry); return;
       }
+    } else if (kind === 'chart') {
+      // A CHART HAS NO NODES, and never did. It draws lines, dots and an axis, so the box-based
+      // rules below cannot say anything true about it. The one rule that still applies is that it
+      // drew SOMETHING: an empty plot is the failure a reader sees as white space.
+      const marks = svg.querySelectorAll('path, circle, rect, line, polyline');
+      entry.nodes = marks.length;
+      if (!marks.length) {
+        entry.findings.push({ rule: 'drew-nothing', detail: 'the chart <svg> is present and drew no marks at all' });
+      }
+      out.push(entry); return;
     } else {
-      nodes = [].slice.call(svg.querySelectorAll('g.shape > rect, g.shape > polygon, g.node > polygon, g.node > ellipse'))
+      // `g.node > path` is load-bearing: graphviz renders `shape=box, style=rounded` as a PATH,
+      // not a polygon, so a selector list of polygon and ellipse alone matched nothing on every
+      // mindmap and every tree and refused them as "drew nothing". Measured on this machine
+      // against real `twopi` and `dot` output.
+      nodes = [].slice.call(svg.querySelectorAll(
+        'g.shape > rect, g.shape > polygon, g.shape > path, g.node > polygon, g.node > ellipse, g.node > path'))
         .map((el) => ({ el, box: boxOf(el), id: (el.parentNode.parentNode.getAttribute('class') || '').slice(0, 24) }));
       edges = [].slice.call(svg.querySelectorAll('path.connection, g.edge path'));
     }

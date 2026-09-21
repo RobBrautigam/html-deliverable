@@ -9,7 +9,7 @@ Three defects, all three measurable in a headless render:
    node in column 0.
 2. Text is wrapped at a CHARACTER count rather than a measured width, so `long-program-name-host`
    (one unbreakable 22-character token) is drawn wider than the box it sits in, and the note
-   `1.6 GB IN 51 ORPHANS` is never wrapped or measured at all.
+   `1.2 GB IN 40 ORPHANS` is never wrapped or measured at all.
 3. The edge from the session to the leak routes at the midpoint between its two boxes, which is
    the middle of the figure, so its horizontal run crosses the column 1 node and its vertical run
    crosses the column 3 node.
@@ -23,20 +23,20 @@ render clean afterwards, at every width and in both themes.
   <script type="application/json" class="flow-data">
   {
     "title": "What one agent session puts on the machine",
-    "caption": "Nine programs per session. The green step should end them all. The red one is where it failed.",
+    "caption": "Several programs per session. The green step should end them all. The red one is where it failed.",
     "lanes": [
       {"id": "you", "label": "YOU RUN", "tone": "acc"},
       {"id": "helpers", "label": "IT STARTS HELPERS", "tone": "acc-2"},
       {"id": "after", "label": "WHEN IT ENDS", "tone": "violet"}
     ],
     "nodes": [
-      {"id": "sess", "col": 0, "lane": "you", "label": "One agent session", "note": "SIX TODAY", "tone": "acc"},
+      {"id": "sess", "col": 0, "lane": "you", "label": "One agent session", "note": "FOUR TODAY", "tone": "acc"},
       {"id": "pty", "col": 1, "lane": "you", "label": "Its own terminal host", "note": "PLUMBING", "tone": "acc"},
       {"id": "bridge", "col": 2, "lane": "helpers", "label": "long-program-name-host", "note": "TWICE", "tone": "amber"},
       {"id": "graph", "col": 3, "lane": "helpers", "label": "Code graph helper", "note": "5 PARTS", "tone": "amber"},
       {"id": "review", "col": 4, "lane": "helpers", "label": "Review helper tree", "note": "6 PARTS", "tone": "acc-2"},
       {"id": "clean", "col": 5, "lane": "after", "label": "The session closes", "note": "SHOULD TIDY UP", "tone": "green"},
-      {"id": "left", "col": 6, "lane": "after", "label": "Review tree survives", "note": "1.6 GB IN 51 ORPHANS", "tone": "red"}
+      {"id": "left", "col": 6, "lane": "after", "label": "Review tree survives", "note": "1.2 GB IN 40 ORPHANS", "tone": "red"}
     ],
     "edges": [
       {"from": "sess", "to": "pty"},
