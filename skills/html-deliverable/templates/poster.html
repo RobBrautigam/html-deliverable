@@ -1,0 +1,98 @@
+<!-- SURFACE: poster -->
+<!-- A CLIENT ONE-PAGER: the thing handed to a prospect or a business owner. One screen does the
+     work - the hero line, three numbers, the problem-to-solution blocks, one call to action -
+     and the page prints to a single clean page. The client-build patterns apply: surface
+     panels, the graph-paper ground, the reader's own palette through --acc, an optional
+     maker's mark (--mark, off unless asked for), and NO presenter-side notes. It is a document
+     a business owner reads on a laptop and prints, not a social image. -->
+
+<!-- OUTPUT CONTRACT: no presenter notes, no internal margin math, and no company or client name
+     the page was not explicitly given. The mark ships only when --mark passes a text for it. -->
+
+<!-- SURFACE:CSS -->
+  /* poster surface: graph-paper ground, hero, problem-arrow-solution, the maker's mark */
+  body{
+    background-image:
+      linear-gradient(var(--line) 1px, transparent 1px),
+      linear-gradient(90deg, var(--line) 1px, transparent 1px);
+    background-size:28px 28px;
+    background-position:-1px -1px;
+  }
+  .wrap{max-width:1000px}
+  .poster-hero{text-align:center; padding:34px 28px 30px}
+  .poster-hero h1{font-size:2.6rem; line-height:1.1; margin:0 0 10px}
+  .poster-hero .lede{font-size:1.12rem; max-width:44em; margin:0 auto}
+  .bignums{display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin:22px 0 4px; align-items:center}
+  .bignum{background:var(--panel); border:1px solid var(--line); border-top:4px solid var(--acc);
+    border-radius:12px; padding:20px 18px; text-align:center; box-shadow:var(--shadow)}
+  .bignum .n{font-family:Georgia,serif; font-size:2.3rem; line-height:1; color:var(--acc)}
+  .bignum .l{font-size:.86rem; color:var(--muted); margin-top:8px}
+  @media screen and (max-width:760px){ .bignums{grid-template-columns:1fr} }
+  .pas{display:grid; grid-template-columns:1fr 44px 1fr; gap:12px; align-items:center; margin:16px 0}
+  .pas .arrow{text-align:center; font-size:1.6rem; color:var(--acc)}
+  .pas .side{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:16px 18px}
+  .pas .side h3{margin:0 0 8px; font-size:1.02rem}
+  .pas .side ul{margin:0; padding-left:20px}
+  .pas .side li{margin:5px 0}
+  @media screen and (max-width:760px){ .pas{grid-template-columns:1fr} .pas .arrow{transform:rotate(90deg)} }
+  .mono{font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  .mark{text-align:center; letter-spacing:.18em; font-size:.72rem; color:var(--muted); margin-top:26px}
+  .cta{background:var(--acc); color:var(--on-acc); border-radius:12px; padding:20px 24px; text-align:center; margin:20px 0 0}
+  .cta h2{margin:0 0 6px; color:#fff}
+  .cta a{color:#fff; font-weight:700}
+  @media print{ body{background-image:none} .wrap{max-width:100%} }
+<!-- /SURFACE:CSS -->
+
+<!-- SURFACE:BODY -->
+
+  <header class="cover poster-hero">
+    <div class="eyebrow">{{EYEBROW}}</div>
+    <h1>{{TITLE}}</h1>
+    <p class="lede">{{LEDE}}</p>
+    <div class="cover-meta" style="justify-content:center">
+      <span><b>Prepared for</b> {{PREPARED_FOR}}</span>
+      <span><b>By</b> {{FROM}}</span>
+      <span><b>Date</b> {{DATE}}</span>
+    </div>
+  </header>
+
+{{VERDICT}}
+
+  <!-- OPTIONAL:BIGNUMS -->
+  <div class="bignums">
+{{BIGNUM_CARDS}}
+    <!-- hand-written shape: <div class="bignum"><div class="n">42</div><div class="l">what it means to the client</div></div> -->
+  </div>
+  <!-- /OPTIONAL:BIGNUMS -->
+
+{{CONTENT}}
+
+  <!-- OPTIONAL:SHAPE -->
+  <section id="shape">
+    <div class="sec-num">The shape of the work</div>
+    <div class="pas">
+{{SHAPE_TODAY}}
+      <div class="arrow">-&gt;</div>
+{{SHAPE_AFTER}}
+    </div>
+  </section>
+  <!-- /OPTIONAL:SHAPE -->
+
+{{LINKS}}
+
+  <!-- OPTIONAL:CTA -->
+  <div class="cta">
+    <h2>{{CTA_HEAD}}</h2>
+    <p style="margin:0">{{CTA_LINE}}</p>
+  </div>
+  <!-- /OPTIONAL:CTA -->
+
+  <!-- OPTIONAL:MARK -->
+  <div class="mark">{{MARK}}</div>
+  <!-- /OPTIONAL:MARK -->
+
+  <div class="foot">
+    {{FOOT}}
+  </div>
+
+<!-- /SURFACE:BODY -->

@@ -1,0 +1,39 @@
+<!-- SURFACE: report -->
+<!-- The default surface. A document somebody READS: an audit, a status report, a research
+     brief, a triage table, a decision pack. Cover, verdict, at a glance, the links table, one
+     section per part. This is the shape the house style was extracted from. -->
+
+<!-- SURFACE:CSS -->
+  /* report surface: nothing to add - the house base already carries this shape. */
+<!-- /SURFACE:CSS -->
+
+<!-- SURFACE:BODY -->
+
+  <header class="cover">
+    <div class="eyebrow">{{EYEBROW}}</div>
+    <h1>{{TITLE}}</h1>
+    <p class="lede">{{LEDE}}</p>
+    <div class="cover-meta">
+      <span><b>Prepared for</b> {{PREPARED_FOR}}</span>
+      <span><b>From</b> {{FROM}}</span>
+      <span><b>Date</b> {{DATE}}</span>
+    </div>
+  </header>
+
+{{VERDICT}}
+
+  <!-- OPTIONAL:BIGNUMS -->
+  <div class="hero-stats">
+{{HERO_STATS}}
+  </div>
+  <!-- /OPTIONAL:BIGNUMS -->
+
+{{TOC}}
+{{LINKS}}
+{{CONTENT}}
+
+  <div class="foot">
+    {{FOOT}}
+  </div>
+
+<!-- /SURFACE:BODY -->

@@ -1,0 +1,13 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-audience="internal">
+<head><meta charset="utf-8"><title>A component in the markup with none of its assets</title>
+<style>body{font-family:system-ui,sans-serif;margin:0} .page{max-width:860px;margin:0 auto;padding:24px}</style>
+</head><body><div class="page"><h1>A component in the markup with none of its assets</h1>
+<p>The build line named this component. The page carries its markup and neither its CSS nor its
+JS, so the figure renders as nothing at all and the reader sees a gap.</p>
+<figure class="flow" aria-label="The map with no renderer behind it">
+  <script type="application/json" class="flow-data">
+  {"lanes":[{"id":"a","label":"ONE"}],"nodes":[{"id":"n","col":0,"lane":"a","label":"A step"}],"edges":[]}
+  </script>
+</figure>
+</div></body></html>

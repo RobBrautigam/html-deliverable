@@ -1,0 +1,29 @@
+# THE WALL LIST. One name per line. Blank lines and lines starting with # are ignored.
+#
+# This is the single place the names live. lint.py reads it, build.py reads it through lint.py,
+# and nothing else in the skill hard-codes a company name. To add a name, add a line.
+#
+# WHAT BELONGS HERE: names that must never appear in a document built for a different audience.
+# Your own companies, their products, internal system names, and the clients of one company
+# whose name must never surface in another company's document. WHAT DOES NOT: the audience a
+# page is FOR. A page names its own audience through --allow, which switches off the matching
+# entries for that one run:
+#
+#     lint.py <file.html> --audience external --allow "Acme"
+#
+# MATCHING: case-insensitive, whole word at the front, and spaces match spaces, hyphens or
+# underscores. So one line for "acme holdings" catches "Acme Holdings", "acme-holdings" and
+# "acmeholdings", and the entry "initech" catches "initech-audit". A person's own signature is
+# not a company: an author line carrying a person's name is their name on their own document,
+# which is why an entry is a company's full name and never a surname on its own.
+#
+# The two names below are FICTIONAL samples so the feature ships with something to prove itself
+# against (test_client_safe.py pins them). Replace them with your own.
+
+# --- the companies ---
+acme
+acme holdings
+acmeholdings.com
+
+# --- a client of one company, which must not appear in another's document ---
+initech

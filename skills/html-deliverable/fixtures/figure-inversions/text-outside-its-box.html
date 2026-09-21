@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-audience="internal">
+<head>
+<meta charset="utf-8">
+<title>Text drawn outside the box it belongs to</title>
+<style>
+  body{margin:0; font-family:system-ui, sans-serif; background:#fff; color:#22262b}
+  .page{max-width:900px; margin:0 auto; padding:24px}
+  figure{margin:16px 0}
+  .clip{overflow:hidden}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>Text drawn outside the box it belongs to</h1>
+<p>The label is centered on a box narrower than the label, which is exactly what a wrap by CHARACTER COUNT produces the first time a figure uses a real program name.</p>
+<figure class="flow" aria-label="The map with a label wider than its box">
+  <svg width="500" height="120" viewBox="0 0 500 120" role="img"><title>overflow</title>
+    <rect class="flow-node" data-node="bridge" x="190" y="30" width="96" height="58" rx="10" fill="#eef1f8" stroke="#0d32b2"></rect>
+    <text class="flow-label" data-node="bridge" x="238" y="64" text-anchor="middle" font-size="11.5" font-weight="600">long-program-name-host</text>
+  </svg>
+</figure>
+</div>
+</body>
+</html>

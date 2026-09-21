@@ -1,0 +1,21 @@
+{
+  "name": "html-deliverable",
+  "owner": {
+    "name": "Rob Brautigam"
+  },
+  "metadata": {
+    "description": "One skill: build polished, standalone HTML documents from markdown, CSV or JSON.",
+    "version": "1.0.0"
+  },
+  "plugins": [
+    {
+      "name": "html-deliverable",
+      "description": "Build polished, standalone HTML documents from markdown, CSV or JSON, with a one-command build and a mandatory pre-delivery lint.",
+      "source": "./",
+      "strict": false,
+      "skills": [
+        "./skills/html-deliverable"
+      ]
+    }
+  ]
+}

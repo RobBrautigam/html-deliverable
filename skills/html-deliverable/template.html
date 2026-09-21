@@ -1,0 +1,914 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-look="classic">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>REPLACE - Document Title</title>
+<style>
+  /* ============================================================
+     HOUSE STYLE. DESIGN.md in this folder is the authority; this
+     file is its implementation. Do not hand-edit the palette.
+
+     TWO LOOKS, ONE FILE. The look is an attribute on <html>:
+       data-look="classic"  the warm gold report look. Formal
+                            reports, agreements, formal deliverables.
+       data-look="tint"     the cool graph-paper look. Agendas, call
+                            documents, client one-pagers and internal
+                            reading.
+     THE TOKENS NAME NOTHING. No company, client or person appears
+     in this file, because every byte of it ships inside every page
+     built from it, including a one-pager for somebody else's
+     client. Every component below reads tokens, never raw hex, so
+     a look change is one attribute and nothing else moves.
+
+     TWO THEMES. Light is always the shipped default; dark is
+     reachable only by the toggle. Never add a prefers-color-scheme
+     block.
+     ============================================================ */
+
+  /* ---- CLASSIC light (the default look) ---- */
+  :root{
+    --bg:#f7f5f1; --panel:#ffffff; --panel-2:#fbfaf7; --ink:#1c1a17; --muted:#6b655c;
+    --line:#e6e1d8; --line-2:#efebe3; --grid:transparent;
+    --acc:#b8862f; --acc-2:#8a6320; --acc-soft:#f3e9d4; --acc-ink:#6d4f19;
+    --green:#3f7d54; --green-soft:#e6f0e8; --green-ink:#2c5c3c;
+    --amber:#b7791f; --amber-soft:#f7ecd6; --amber-ink:#8a5209;
+    --red:#b0413a; --red-soft:#f6e2e0; --red-ink:#87302a;
+    --violet:#6b3fa0; --violet-soft:#f1e9fb; --violet-ink:#55307f;
+    --ask:#a32d68; --ask-soft:#fce8f1; --ask-ink:#83204f;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+    --on-acc:#ffffff;
+    --radius:14px; --radius-sm:10px;
+    --font-head:Georgia,"Times New Roman",serif;
+    --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --wrap-w:1000px;          /* the classic reading width */
+    --wrap-min:720px; --wrap-max:1600px;
+    color-scheme: light;
+  }
+  :root[data-theme="light"]{
+    --bg:#f7f5f1; --panel:#ffffff; --panel-2:#fbfaf7; --ink:#1c1a17; --muted:#6b655c;
+    --line:#e6e1d8; --line-2:#efebe3; --grid:transparent;
+    --acc:#b8862f; --acc-2:#8a6320; --acc-soft:#f3e9d4; --acc-ink:#6d4f19;
+    --green:#3f7d54; --green-soft:#e6f0e8; --green-ink:#2c5c3c;
+    --amber:#b7791f; --amber-soft:#f7ecd6; --amber-ink:#8a5209;
+    --red:#b0413a; --red-soft:#f6e2e0; --red-ink:#87302a;
+    --violet:#6b3fa0; --violet-soft:#f1e9fb; --violet-ink:#55307f;
+    --ask:#a32d68; --ask-soft:#fce8f1; --ask-ink:#83204f;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+    --on-acc:#ffffff;
+  }
+  /* ---- CLASSIC dark (toggle only) ---- */
+  :root[data-theme="dark"]{
+    --bg:#16140f; --panel:#1f1c16; --panel-2:#241f18; --ink:#efe9dd; --muted:#a49c8c;
+    --line:#332e25; --line-2:#2b261e; --grid:transparent;
+    --acc:#d9a94a; --acc-2:#e8c67a; --acc-soft:#2a2213; --acc-ink:#f0d49a;
+    --green:#78b98d; --green-soft:#17241b; --green-ink:#a9dcb9;
+    --amber:#d9a441; --amber-soft:#2a2113; --amber-ink:#f0cf8e;
+    --red:#e0847c; --red-soft:#2a1614; --red-ink:#f2b3ac;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+    --violet:#b79ae0; --violet-soft:#241a3a; --violet-ink:#d6c4f2;
+    --ask:#eb95bd; --ask-soft:#341326; --ask-ink:#f7bcd6;
+    --on-acc:#16140f;
+    color-scheme: dark;
+  }
+
+  /* ---- TINT light: the cool ground plus graph paper ---- */
+  :root[data-look="tint"],
+  :root[data-look="tint"][data-theme="light"]{
+    --bg:#edf1f5; --panel:#ffffff; --panel-2:#fafbfd; --ink:#22262b; --muted:#5b6672;
+    --line:#d7dee7; --line-2:#e8edf2; --grid:#e8edf2;
+    --acc:#1b4d7a; --acc-2:#0e7490; --acc-soft:#e4f1f6; --acc-ink:#123a5e;
+    --green:#1f7a4c; --green-soft:#e3f2ea; --green-ink:#145c39;
+    --amber:#b4690e; --amber-soft:#fdf0de; --amber-ink:#8a5209;
+    --red:#b0413a; --red-soft:#f9e6e4; --red-ink:#87302a;
+    --violet:#6b3fa0; --violet-soft:#f1e9fb; --violet-ink:#55307f;
+    --ask:#a32d68; --ask-soft:#fce8f1; --ask-ink:#83204f;
+    --shadow:0 1px 2px rgba(16,24,64,.05),0 10px 30px rgba(16,24,64,.07);
+    --on-acc:#ffffff;
+    --font-head:Georgia,"Times New Roman",serif;
+    --wrap-w:1080px;          /* the tint reading width: a little wider than classic */
+    color-scheme: light;
+  }
+  /* ---- TINT dark (toggle only) ---- */
+  :root[data-look="tint"][data-theme="dark"]{
+    --bg:#0e1230; --panel:#161b3a; --panel-2:#1b2145; --ink:#e8eaf2; --muted:#a9b1bd;
+    --line:#2a3150; --line-2:#222846; --grid:#161b3a;
+    --acc:#8fb6e0; --acc-2:#5cc3e6; --acc-soft:#13304a; --acc-ink:#c4dcf2;
+    --green:#5ed39b; --green-soft:#143526; --green-ink:#9fe7c3;
+    --amber:#f3a95a; --amber-soft:#3a2a14; --amber-ink:#f7c98e;
+    --red:#e0847c; --red-soft:#2a1614; --red-ink:#f2b3ac;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.4);
+    --violet:#b79ae0; --violet-soft:#241a3a; --violet-ink:#d6c4f2;
+    --ask:#eb95bd; --ask-soft:#341326; --ask-ink:#f7bcd6;
+    --on-acc:#0e1230;
+    color-scheme: dark;
+  }
+
+  /* ============================================================
+     BASE LAYOUT
+     ============================================================ */
+  *{box-sizing:border-box}
+  html{scroll-behavior:auto} /* never CSS smooth - it degrades to a jump under reduced motion */
+  /* An image never widens the page. A capture pasted at its pixel width (a 1,200px screenshot in
+     a 390px column) overflows a page at phone width without this line. `height:auto` keeps the
+     aspect when a width attribute is present. Proved by inversion in test_page_contract.py: the
+     same 1,200px image passes at 390 with this line and overflows without it. */
+  img{max-width:100%; height:auto}
+  body{
+    margin:0; color:var(--ink);
+    background:var(--bg);
+    /* 28px graph paper. --grid is transparent in the classic look, so one code
+       path serves both and nothing is painted where nothing is wanted. */
+    background-image:linear-gradient(var(--grid) 1px, transparent 1px),
+                     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:28px 28px;
+    background-attachment:fixed;
+    font:16px/1.62 var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  /* The reading column BREAKS an unbreakable token rather than letting it widen the page. These
+     documents are full of them: a 90-character documentation URL, a method signature, a campaign
+     id, a database column name. Measured at 390: one URL took a page to 967px and one italic
+     method signature to 495px. break-word, not anywhere, so ordinary prose still wraps on its
+     spaces. */
+  .wrap{max-width:var(--wrap-w); margin:0 auto; padding:40px 24px 80px; overflow-wrap:break-word}
+  /* The reading column yields to the section nav rather than being covered by it.
+     MEASURED: without this, the nav sat 144px on top of the column at 1200 and 24px over it
+     at 1440. Above 1200 (where the nav shows) the column takes the smaller of
+     its own width and what is left once the nav's rail is reserved, so it STAYS CENTERED in
+     the space it has, and the nav never overlaps it at any width or any dragged size. */
+  @media screen and (min-width:1200px){
+    .wrap{max-width:min(var(--wrap-w), calc(100vw - 450px))}
+  }
+  h1,h2,h3,h4{font-family:var(--font-head); font-weight:600; line-height:1.2; letter-spacing:-.01em}
+  h1{font-size:2.15rem; margin:0 0 6px}
+  h2{font-size:1.5rem; margin:0 0 4px}
+  h3{font-size:1.12rem; margin:22px 0 8px}
+  h4{font-size:1rem; margin:18px 0 6px}
+  /* A bare URL in prose is ONE unbreakable word, and the builder turns every bare URL into a real
+     link, so a 90-character documentation URL widened a page to 967px at 390. break-word rather
+     than anywhere: it breaks only a word that cannot fit, so ordinary link text still wraps on
+     its spaces. */
+  a{color:var(--acc); text-decoration:none; overflow-wrap:break-word}
+  a:hover{text-decoration:underline}
+  p{margin:0 0 12px}
+  ::selection{background:var(--acc-soft); color:var(--acc-ink)}
+  .eyebrow{font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--acc); font-weight:700; margin-bottom:14px}
+  .lede{font-size:1.06rem; color:var(--muted)}
+  header.cover{border-bottom:2px solid var(--acc); padding-bottom:26px; margin-bottom:26px}
+  .cover-meta{display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:16px; font-size:.9rem; color:var(--muted)}
+  .cover-meta b{color:var(--ink); font-weight:600}
+  section{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:24px 26px; margin:0 0 20px; box-shadow:var(--shadow)}
+  section > .sec-num{font-family:var(--font-head); color:var(--acc); font-size:.85rem; font-weight:700; letter-spacing:.04em}
+
+  /* ============================================================
+     PART HEAD. A large document groups its sections under PARTS
+     (a level-1 heading in the source). The part heading opens its
+     own block on the page ground, directly above the sections it
+     introduces - never the last child of the card before it, which
+     reads as a heading stranded at the bottom of the wrong card.
+     Sizes step down: part, section, sub-section. Both looks read
+     the same tokens.
+     ============================================================ */
+  .part-head{margin:46px 0 18px; padding:0 4px; break-inside:avoid}
+  .part-head:first-child{margin-top:4px}
+  .part-num{font:700 .72rem/1 var(--font-body); letter-spacing:.16em; text-transform:uppercase;
+    color:var(--acc); margin-bottom:10px}
+  .part-title{font-size:1.95rem; margin:0; padding-bottom:12px; border-bottom:2px solid var(--acc)}
+  .part-head > p{margin:14px 0 0; color:var(--muted); font-size:1rem; max-width:70ch}
+  .part-head > p:last-child{margin-bottom:0}
+  section > h3.sec-title{font-size:1.5rem; margin:0 0 4px}
+  section > h3.sec-title + *{margin-top:10px}
+  .sub{color:var(--muted); font-size:.92rem; margin:2px 0 14px}
+  .foot{color:var(--muted); font-size:.82rem; text-align:center; margin-top:34px; line-height:1.6}
+
+  /* ---- verdict / warn / callout ---- */
+  .verdict{background:var(--green-soft); border:1px solid var(--green); border-left:4px solid var(--green); border-radius:var(--radius-sm); padding:16px 18px; margin:0 0 20px; font-size:.95rem}
+  .verdict strong{color:var(--green-ink)}
+  .warn{background:var(--amber-soft); border:1px solid var(--amber); border-left:4px solid var(--amber); border-radius:var(--radius-sm); padding:16px 18px; margin:0 0 30px; font-size:.95rem}
+  .warn strong{color:var(--amber-ink)}
+  .callout{background:var(--acc-soft); border-radius:var(--radius-sm); padding:12px 16px; margin:12px 0; font-size:.93rem}
+  /* An unbreakable identifier in inline code overflows the column at 390 and takes the page
+     with it. */
+  code{background:var(--acc-soft); border-radius:4px; padding:1px 5px; font-size:.88em;
+       font-family:var(--font-mono); overflow-wrap:anywhere}
+  /* A fenced block holds a paste-ready MESSAGE, not source code, so its lines are prose and
+     must wrap instead of running off the page. Without this the block sets its own width from
+     the longest sentence and the whole document scrolls sideways (measured: an eleven-draft
+     page was 3,050px wide inside a 1,080px column). */
+  pre{background:var(--acc-soft); border-radius:var(--radius-sm); padding:12px 14px; margin:12px 0;
+      white-space:pre-wrap; overflow-wrap:anywhere; max-width:100%}
+  pre code{background:none; padding:0; font-size:.86em}
+  /* A grid item's default min-width is auto, not 0, so one long word makes the whole track
+     wider than its share and the layout overflows instead of wrapping. */
+  .facts > .cell, .hero-stats > .stat, .dt-controls > *{min-width:0}
+  .mono{font-family:var(--font-mono); font-size:.92em}
+
+  /* ---- facts grid ---- */
+  .facts{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:8px 0 4px}
+  .facts .cell{background:var(--panel); padding:12px 14px}
+  .facts .k{font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:3px}
+  .facts .v{font-size:.98rem; font-weight:600}
+  @media screen and (max-width:560px){ .facts{grid-template-columns:1fr} }
+
+  /* ---- tables ---- */
+  table{width:100%; border-collapse:collapse; margin:10px 0 6px; font-size:.92rem}
+  /* max-width:100% matters as much as the overflow: without it the scroller sizes itself from
+     the table and the PAGE scrolls sideways instead of the table. The phone rule gives the same
+     treatment to a plain markdown table, which is emitted with no wrapper: six columns cannot
+     fit 390px and something has to scroll. */
+  .scroll{overflow-x:auto; max-width:100%}
+  @media screen and (max-width:760px){
+    .sec > table, section > table{display:block; overflow-x:auto; max-width:100%}
+  }
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:700}
+  tbody tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
+  .nw{white-space:nowrap}
+  tr.main td{border-bottom:none; padding-bottom:2px}
+  tr.sub td{padding-top:0; padding-bottom:8px; font-size:.8rem; line-height:1.5}
+  tr.sub td.desc b{color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase; letter-spacing:.04em}
+  .days{font-weight:700; color:var(--red); font-size:.76rem}
+  .dim{color:var(--muted)}
+  .tiny{font-size:.78rem}
+  .dim.tiny span + span{margin-left:14px}
+
+  /* ---- chips ---- */
+  .chip{display:inline-block; font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:20px; letter-spacing:.02em; white-space:nowrap}
+  .chip.g{background:var(--green-soft); color:var(--green-ink)}
+  .chip.a{background:var(--amber-soft); color:var(--amber-ink)}
+  .chip.r{background:var(--red-soft); color:var(--red-ink)}
+  .chip.n{background:var(--acc-soft); color:var(--acc-ink)}
+  ul,ol{margin:6px 0 12px; padding-left:20px}
+  li{margin:4px 0}
+
+  /* ---- hero stats. Color = FOCUS: g money/act-now, r risk, a caution, n volume.
+         Big numbers align on CENTERS so mixed-size figures do not stagger. ---- */
+  .hero-verdict{font-family:var(--font-head); font-size:1.28rem; line-height:1.45; margin:0 0 16px}
+  .hero-verdict b{color:var(--green-ink)}
+  .hero-stats{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin:0 0 6px; align-items:center}
+  .stat{border-radius:12px; padding:16px 18px 14px; border:1px solid var(--line); border-top:4px solid var(--acc); background:var(--panel); box-shadow:var(--shadow); text-align:center}
+  /* A figure never breaks mid-number: "$9,804.04" wrapping to "$9,804.0 / 4" is a broken page,
+     so the size gives way before the digits do. */
+  .stat .num{font-family:var(--font-head); font-size:clamp(1.5rem, 2.4vw, 2.3rem); font-weight:700; line-height:1.1; letter-spacing:-.01em; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .stat .lbl{font-size:.86rem; color:var(--muted); margin-top:4px; line-height:1.4}
+  .stat .lbl b{color:var(--ink)}
+  .stat.g{border-top-color:var(--green); background:var(--green-soft)} .stat.g .num{color:var(--green-ink)}
+  .stat.r{border-top-color:var(--red); background:var(--red-soft)} .stat.r .num{color:var(--red-ink)}
+  .stat.a{border-top-color:var(--amber); background:var(--amber-soft)} .stat.a .num{color:var(--amber-ink)}
+  .stat.n .num{color:var(--acc)}
+  @media screen and (max-width:980px){ .hero-stats{grid-template-columns:repeat(2,1fr)} }
+  @media screen and (max-width:600px){ .hero-stats{grid-template-columns:1fr} }
+
+  /* ---- tone utilities: one class per accent, read by every component that draws in color
+         (the line chart's series, the grouped bar's tracks). They live HERE and nowhere else:
+         a tone defined inside one component's CSS renders BLACK on a page that did not pull
+         that component in, which is a silent failure no screenshot of the other page shows. ---- */
+  .t-ink{color:var(--ink)} .t-acc{color:var(--acc)} .t-green{color:var(--green)}
+  .t-amber{color:var(--amber)} .t-red{color:var(--red)} .t-muted{color:var(--muted)}
+
+  /* ---- contents chips ---- */
+  .toc{display:flex; flex-wrap:wrap; gap:8px 10px; margin:2px 0 4px}
+  .toc a{display:inline-block; background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:6px 14px; font-size:.84rem; font-weight:600; color:var(--ink)}
+  .toc a b{color:var(--acc); font-family:var(--font-head); margin-right:6px}
+  .toc a:hover{text-decoration:none; border-color:var(--acc); color:var(--acc)}
+  /* Grouped contents: the same tree the rail uses, so the two never disagree about the
+     document's shape. A flat list of forty chips is the same wall in another form. */
+  .toc-part{margin:14px 0 0}
+  .toc-part:first-child{margin-top:2px}
+  .toc-part-name{display:block; font-family:var(--font-head); font-size:1.02rem; font-weight:600;
+    color:var(--ink); margin:0 0 8px}
+  .toc-part-name b{color:var(--acc); margin-right:8px; font-variant-numeric:tabular-nums}
+  .toc-part-name:hover{color:var(--acc); text-decoration:none}
+  .toc-kids{margin:0 0 2px; padding-left:16px; border-left:2px solid var(--line)}
+  .toc-kids a{font-size:.8rem; padding:5px 12px}
+
+  /* ============================================================
+     RIGHT-SIDE FLOATING SECTION NAV. Required on every page with
+     2+ sections. Visible from the TOP, never scroll-gated. rAF-eased
+     scroll only.
+     ============================================================ */
+  #sidenav{
+    position:fixed; right:14px; top:50%; transform:translateY(-50%) translateX(28px);
+    display:flex; flex-direction:column; gap:2px; z-index:40;
+    opacity:0; pointer-events:none; transition:opacity .5s, transform .5s;
+    /* MEASURED: a 40-entry flat rail rendered 1394px tall inside a 900px viewport, so its top
+       and its bottom were both off screen and the page had to be zoomed to 50 percent to read
+       it. The rail now never exceeds the screen: it caps its own height and takes its own quiet
+       scrollbar as the backstop behind the grouping below. */
+    max-height:calc(100vh - 28px); overflow-y:auto; overscroll-behavior:contain;
+    scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+  }
+  #sidenav::-webkit-scrollbar{width:6px}
+  #sidenav::-webkit-scrollbar-track{background:transparent}
+  #sidenav::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px}
+  #sidenav:hover::-webkit-scrollbar-thumb{background:var(--line-2)}
+  #sidenav.visible{opacity:1; transform:translateY(-50%) translateX(0); pointer-events:auto}
+  #sidenav button{
+    font:600 13px/1.3 var(--font-body);
+    text-align:right; padding:6px 13px; border:none; border-right:2px solid transparent;
+    border-radius:6px 0 0 6px; background:none; color:var(--muted); cursor:pointer;
+    transition:color .2s, background .2s, border-color .2s;
+  }
+  #sidenav button:hover{color:var(--ink)}
+  #sidenav button.active{color:var(--acc); background:var(--acc-soft); border-right-color:var(--acc)}
+  #sidenav button:focus-visible{outline:2px solid var(--acc); outline-offset:2px}
+
+  /* ---- the two-level rail: the PARTS are the top level, and only the ACTIVE part's sections
+     are open beneath it. A rail listing every section of a forty-section document is the
+     unusable page; a rail listing six parts is a map. ---- */
+  #sidenav .nav-group{display:flex; flex-direction:column; gap:2px}
+  #sidenav button.nav-part{font:700 13px/1.3 var(--font-body); color:var(--ink); padding-top:9px}
+  #sidenav button.nav-part b{color:var(--acc); font-weight:700; margin-right:7px; font-variant-numeric:tabular-nums}
+  #sidenav .nav-kids{display:none; flex-direction:column; gap:1px; margin-bottom:4px}
+  #sidenav .nav-group.open > .nav-kids{display:flex}
+  #sidenav .nav-kids button{font:500 12px/1.3 var(--font-body); padding:4px 13px 4px 22px; opacity:.92}
+  @media screen and (max-width:1199px){ #sidenav{display:none} }
+  /* MEASURED: at 1200 the nav sat 144px ON TOP of the reading column, and still 24px over it
+     at 1440. A media query cannot know the column width because the reader can drag it, so the
+     fit is computed in script and this class is what it toggles. */
+  #sidenav.cramped{display:none}
+  /* INSIDE A FRAME. A shell that grows the frame to the page's own height draws the rail
+     itself, so the page's fixed chrome would sit thousands of pixels down and its theme toggle
+     would knock the frame out of the app's theme. `data-framed` is set by the framed-mode
+     script below, on a `data-embedded` page at once and otherwise once the frame is taller
+     than the screen; a shell that appends its own reporter hides the same four things under
+     its own attribute, so the two agree without sharing a name. A page opened in its own tab
+     never carries it. No product name appears in any token here: a delivered page names
+     nobody, and the wall lint reads this file. */
+  html[data-framed] #sidenav, html[data-framed] .grip,
+  html[data-framed] .theme-toggle, html[data-framed] #tip{display:none !important}
+
+  /* ============================================================
+     WIDTH HANDLES. Drag the left or the right edge of the page to
+     resize the reading width. Invisible at rest, revealed on hover
+     of the edge strip, keyboard reachable with the arrow keys, the
+     chosen width remembered per page. Double-click resets to the
+     look's default.
+     ============================================================ */
+  .grip{
+    position:fixed; top:0; bottom:0; width:22px; z-index:45; cursor:ew-resize;
+    background:none; border:none; padding:0;
+    -webkit-user-select:none; user-select:none; touch-action:none;
+  }
+  .grip.l{left:0} .grip.r{right:0}
+  .grip::before{
+    content:""; position:absolute; top:50%; transform:translateY(-50%);
+    left:7px; width:4px; height:64px; border-radius:4px;
+    background:var(--acc); opacity:0; transition:opacity .18s;
+  }
+  .grip:hover::before, .grip:focus-visible::before, .grip.dragging::before{opacity:.55}
+  .grip:focus-visible{outline:none}
+  .grip:focus-visible::before{opacity:.85}
+  @media screen and (max-width:1199px){ .grip{display:none} }
+
+  /* ============================================================
+     DATA TABLE: filter + sort. Any table or list of data ships with
+     a filtering and sorting mechanism. content-visibility keeps a
+     long body cheap to scroll.
+     ============================================================ */
+  .dt-controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:10px 0 4px}
+  .dt-controls input[type="search"], .dt-controls input[type="text"]{
+    flex:1 1 220px; min-width:180px; font:inherit; font-size:.9rem; color:var(--ink);
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:8px 12px;
+  }
+  .dt-controls input:focus{outline:2px solid var(--acc); outline-offset:1px; border-color:var(--acc)}
+  .dt-count{font-size:.8rem; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
+  table.dt th[data-sort]{cursor:pointer; -webkit-user-select:none; user-select:none; white-space:nowrap}
+  table.dt th[data-sort]:hover{color:var(--acc)}
+  table.dt th[data-sort]::after{content:"\2195"; opacity:.3; margin-left:5px; font-size:.9em}
+  table.dt th[aria-sort="ascending"]::after{content:"\2191"; opacity:1}
+  table.dt th[aria-sort="descending"]::after{content:"\2193"; opacity:1}
+  table.dt tbody tr{content-visibility:auto; contain-intrinsic-size:auto 42px}
+  table.dt tbody tr.hide{display:none}
+  table.dt tbody tr:nth-child(even){background:var(--panel-2)}
+  table.dt tbody tr:nth-child(even of :not(.hide)){background:var(--panel-2)}
+  table.dt tbody tr:nth-child(odd of :not(.hide)){background:transparent}
+
+  /* ============================================================
+     PREMIUM TOOLTIP. Any mark carrying data-tip is hovered through
+     this card, never a native title.
+     ============================================================ */
+  #tip{
+    position:fixed; z-index:90; pointer-events:none; opacity:0; transform:translateY(4px);
+    transition:opacity .12s, transform .12s; max-width:280px;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    box-shadow:var(--shadow); padding:9px 12px; font-size:.82rem; line-height:1.45; color:var(--ink);
+  }
+  #tip.on{opacity:1; transform:translateY(0)}
+  #tip b{display:block; font-size:.86rem; margin-bottom:2px}
+  #tip .v{font-variant-numeric:tabular-nums; color:var(--acc)}
+
+  .theme-toggle{position:fixed; top:14px; right:14px; background:var(--panel); border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:6px 10px; font-size:.8rem; cursor:pointer; z-index:50; font-family:var(--font-body)}
+  .theme-toggle:hover{color:var(--ink); border-color:var(--acc)}
+
+  /* ---- the maker's mark lockup: OPT IN with --mark, never a default ---- */
+  .lockup{font-family:var(--font-mono); font-size:.68rem; letter-spacing:.22em; text-transform:uppercase; color:var(--muted); text-align:center; margin-top:28px}
+
+  @media print{
+    .theme-toggle,#sidenav,.grip,#tip,.dt-controls{display:none}
+    body{background:#fff; color:#000; background-image:none}
+    section{box-shadow:none; break-inside:avoid; border-color:#ccc}
+    .wrap{max-width:100%; padding:0}
+    a{color:#000}
+    table.dt tbody tr{content-visibility:visible}
+    table.dt tbody tr.hide{display:table-row}
+  }
+
+  /* BUILD:CSS - build.py appends the chosen surface's extra CSS here. Leave the marker in place. */
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="(function(){var r=document.documentElement;var d=(r.getAttribute('data-theme')||'light')==='dark';r.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('hd-theme',r.getAttribute('data-theme'))}catch(e){}})()">&#9680; theme</button>
+
+<!-- WIDTH HANDLES: drag either edge to set the reading width. -->
+<button class="grip l" aria-label="Narrow or widen the page from the left edge"></button>
+<button class="grip r" aria-label="Narrow or widen the page from the right edge"></button>
+
+<!-- SECTION NAV. One button per section id. -->
+<nav id="sidenav" aria-label="Sections">
+  <!-- BUILD:NAV -->
+  <button data-target="summary">Summary</button>
+  <button data-target="REPLACE-section-id">REPLACE label</button>
+  <button data-target="notes">Notes</button>
+  <!-- /BUILD:NAV -->
+</nav>
+
+<div class="wrap">
+  <!-- BUILD:BODY -->
+
+  <header class="cover">
+    <div class="eyebrow">REPLACE - Brand / Area</div>
+    <h1>REPLACE - Document Title</h1>
+    <p class="lede">REPLACE - One or two sentences: the ask this document answers, and how it was produced (grounded in real data / systems).</p>
+    <div class="cover-meta">
+      <span><b>Prepared for</b> REPLACE</span>
+      <span><b>From</b> REPLACE</span>
+      <span><b>Date</b> REPLACE - Month DD, YYYY</span>
+    </div>
+  </header>
+
+  <!-- EXECUTIVE SUMMARY (REQUIRED on multi-section reports): big numbers +
+       big ideas above the fold, built for the VIEWER's motive. -->
+  <section id="summary">
+    <div class="sec-num">Executive summary</div>
+    <p class="hero-verdict">REPLACE - one plain-English sentence telling the viewer what to DO first, with the <b>headline numbers</b> bolded.</p>
+    <div class="hero-stats">
+      <div class="stat g"><div class="num">REPLACE</div><div class="lbl"><b>REPLACE money/act-now stat</b> - one-line meaning + where in the doc</div></div>
+      <div class="stat n"><div class="num">REPLACE</div><div class="lbl"><b>REPLACE context-volume stat</b> - one-line meaning</div></div>
+      <div class="stat a"><div class="num">REPLACE</div><div class="lbl"><b>REPLACE flagged/caution stat</b> - one-line meaning</div></div>
+    </div>
+  </section>
+
+  <!-- CONTENTS CHIPS (pairs with the exec summary; delete under 3 sections) -->
+  <section id="toc">
+    <div class="sec-num">Contents</div>
+    <div class="toc">
+      <a href="#summary"><b>&#8593;</b>Executive summary</a>
+      <a href="#REPLACE-section-id"><b>1</b>REPLACE section label</a>
+      <a href="#notes"><b>&#9432;</b>Data notes</a>
+    </div>
+  </section>
+
+  <!-- VERDICT: the one-line bottom-up answer. -->
+  <div class="verdict">
+    <strong>&#10004; REPLACE:</strong> the headline conclusion, in one or two sentences.
+  </div>
+  <!-- WARN: use only if there is a real caveat / owed action. Delete otherwise. -->
+  <div class="warn">
+    <strong>&#9888; REPLACE:</strong> the one caveat or action owed, with a link to where it is handled.
+  </div>
+
+  <!-- AT-A-GLANCE fact grid -->
+  <section id="facts">
+    <div class="sec-num">At a glance</div>
+    <div class="facts">
+      <div class="cell"><div class="k">REPLACE label</div><div class="v"><span class="chip g">STATUS</span> detail</div></div>
+      <div class="cell"><div class="k">REPLACE label</div><div class="v"><span class="chip a">STATUS</span> detail</div></div>
+      <div class="cell"><div class="k">REPLACE label</div><div class="v"><span class="chip n">STATUS</span> detail</div></div>
+      <div class="cell"><div class="k">REPLACE label</div><div class="v"><span class="chip g">STATUS</span> detail</div></div>
+    </div>
+
+    <!-- KEY LINKS TABLE: every destination named anywhere in the doc, copy-pasteable. -->
+    <h3>Key links (every destination referenced in this document)</h3>
+    <div class="scroll"><table>
+      <thead><tr><th>Destination</th><th>URL (copy-paste or click)</th></tr></thead>
+      <tbody>
+        <tr><td>REPLACE - what it is</td><td><a href="https://REPLACE" target="_blank" rel="noopener noreferrer">https://REPLACE</a></td></tr>
+      </tbody>
+    </table></div>
+  </section>
+
+  <!-- CONTENT SECTIONS: one <section> per logical part.
+       Any table or list of DATA gets the filter + sort treatment: give the
+       table class="dt", wrap it in <div class="dt-wrap"> with the controls
+       block, and mark each sortable header data-sort="text|num". The
+       gallery (components.html) carries the paste-ready markup. -->
+  <section>
+    <div class="sec-num">1</div>
+    <h2>REPLACE - Section heading</h2>
+    <p class="sub">REPLACE - one-line summary of this section.</p>
+    <p>REPLACE - body. Short paragraphs. Bold the crux. Every referenced destination is a real link, never a bare name.
+       Any enumeration of 2+ items is a real list, never one line joined with separator characters.</p>
+    <div class="callout">REPLACE - an optional highlighted note or key takeaway.</div>
+  </section>
+
+  <div class="foot">
+    REPLACE - footer line (who prepared it, date, any confidentiality note).
+  </div>
+
+  <!-- /BUILD:BODY -->
+</div>
+
+<div id="tip" role="status" aria-hidden="true"></div>
+
+<!-- ============================================================
+     HOUSE BEHAVIOR. One block, six jobs: the theme seed, the
+     framed mode (the theme from a parent, the height report), the
+     section nav with the rAF-eased scroll, the width handles,
+     the table filter and sort, and the premium tooltip. The
+     data-page-frame attribute is a STATIC marker: a server that
+     appends its own reporter can grep the stored bytes for it and
+     know the page already speaks the frame contract.
+     ============================================================ -->
+<script data-page-frame="template">
+(function(){
+  var root = document.documentElement;
+  var KEY = location.pathname.replace(/[^a-z0-9]+/gi,'-').slice(-60);
+
+  /* ---- theme: only an EXPLICIT saved choice may override the light default ---- */
+  try { var saved = localStorage.getItem('hd-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+
+  /* ---- inside a frame: the theme comes from the parent, the chrome hides, the height is
+     reported. A served page inside a sandboxed frame cannot read its saved theme or width
+     (localStorage throws in an opaque origin; every read above is guarded), so a dark app would
+     show a light document until the shell told it otherwise. The contract, with no product name
+     in any token because a delivered page names nobody: inbound, any message whose type ends in
+     "-theme" carrying theme "dark" or "light"; outbound,
+     `{type:'hd-document', height, sections:[{id,label,num,top}]}` after
+     `{type:'hd-document-ready'}`. Only numbers and strings cross, in both directions. Every
+     effect is gated on being framed, so a page in its own tab is untouched. ---- */
+  (function(){
+    var framed = false;
+    try { framed = window.parent !== window; } catch (e) { framed = true; }
+    if (root.hasAttribute('data-embedded')) root.setAttribute('data-framed', '1');
+    if (!framed) return;
+    /* The chrome hides once the frame is taller than the screen it is on: that is a frame a
+       shell has grown to the page, where a fixed rail would sit off the bottom of the window.
+       Re-checked on every resize, because the frame is short at load and grows after the first
+       height report. */
+    function decide(){
+      var screenH = (window.screen && window.screen.height) || 0;
+      if (screenH > 0 && window.innerHeight > screenH) root.setAttribute('data-framed', '1');
+    }
+    decide();
+    window.addEventListener('resize', decide);
+    window.addEventListener('message', function(ev){
+      var d = ev.data;
+      if (!d || typeof d.type !== 'string' || !/-theme$/.test(d.type)) return;
+      if (d.theme === 'dark' || d.theme === 'light') { root.setAttribute('data-theme', d.theme); setTimeout(send, 60); }
+    });
+    /* The height reporter. A page a shell SERVES may already carry the shell's own reporter
+       (a script tagged `data-...-reporter`, appended just before the closing body tag, below
+       this script; that tag is never spelled here because build.py inserts component script at
+       its first occurrence), and that one owns the channel: two reporters would announce ready
+       twice and the shell would answer twice. The check waits for the whole document to be
+       parsed. */
+    function servedReporter(){
+      var scripts = document.scripts, i, j;
+      for (i = 0; i < scripts.length; i++) {
+        for (j = 0; j < scripts[i].attributes.length; j++) {
+          if (/-reporter$/.test(scripts[i].attributes[j].name)) return true;
+        }
+      }
+      return false;
+    }
+    function top(el){ return Math.round(el.getBoundingClientRect().top + window.scrollY); }
+    function sections(){
+      var out = [], i, a, id, target, b, label, num, j;
+      var links = document.querySelectorAll('#toc a[href]');
+      for (i = 0; i < links.length; i++) {
+        a = links[i];
+        var href = a.getAttribute('href') || '';
+        if (href.charAt(0) !== '#' || href.length < 2) continue;
+        try { id = decodeURIComponent(href.slice(1)); } catch (e) { id = href.slice(1); }
+        target = document.getElementById(id);
+        if (!target) continue;
+        b = a.querySelector('b');
+        num = b ? b.textContent.replace(/\s+/g, ' ').trim().slice(0, 8) : '';
+        label = '';
+        for (j = 0; j < a.childNodes.length; j++) { if (a.childNodes[j] !== b) label += a.childNodes[j].textContent || ''; }
+        label = label.replace(/\s+/g, ' ').trim() || (a.textContent || id).replace(/\s+/g, ' ').trim();
+        out.push({ id: id, label: label.slice(0, 90), num: num, top: top(target) });
+      }
+      if (out.length) return out;
+      var nodes = document.querySelectorAll('section[id]');
+      for (i = 0; i < nodes.length; i++) {
+        var n = nodes[i];
+        if (n.id === 'toc') continue;
+        var h = n.querySelector('h1,h2,h3');
+        var numEl = n.querySelector('.sec-num');
+        out.push({ id: n.id,
+                   label: (h ? h.textContent : n.id).replace(/\s+/g, ' ').trim().slice(0, 90),
+                   num: numEl ? numEl.textContent.replace(/\s+/g, ' ').trim().slice(0, 8) : '',
+                   top: top(n) });
+      }
+      return out;
+    }
+    var last = '', sends = 0, ready = false;
+    function send(){
+      if (sends > 40 || !ready) return;
+      var b = document.body;
+      if (!b) return;
+      var cs = window.getComputedStyle(b);
+      var height = Math.ceil(b.getBoundingClientRect().bottom + window.scrollY + (parseFloat(cs.marginBottom) || 0));
+      var msg = { type: 'hd-document', height: height, sections: sections() };
+      var key = JSON.stringify(msg);
+      if (key === last) return;
+      last = key;
+      sends += 1;
+      window.parent.postMessage(msg, '*');
+    }
+    function start(){
+      if (ready || servedReporter()) return;
+      ready = true;
+      root.setAttribute('data-page-reporter', 'template');
+      /* READY FIRST, then the report. A parent that starts listening for the report only once
+         ready has arrived would otherwise miss the first send, and the de-duplicated second one
+         (same height, same sections) would never repeat it. */
+      window.parent.postMessage({ type: 'hd-document-ready' }, '*');
+      send();
+      setTimeout(send, 250);
+      if (window.ResizeObserver) { new ResizeObserver(function(){ send(); }).observe(root); }
+    }
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start);
+  })();
+
+  /* ---- section nav ---- */
+  var nav = document.getElementById('sidenav');
+  if (nav) {
+    var buttons = [].slice.call(nav.querySelectorAll('button'));
+    var groups = [].slice.call(nav.querySelectorAll('.nav-group'));
+    var order = buttons.map(function(b){ return b.getAttribute('data-target'); });
+    var intersecting = {};
+    /* The rail keeps ONE part open: the one the reader is in. A rail that lists every section
+       of a forty-section document is taller than the screen. */
+    function openGroupOf(button){
+      if (!groups.length || !button) return;
+      var mine = button.closest ? button.closest('.nav-group') : null;
+      if (!mine) return;
+      groups.forEach(function(g){ g.classList.toggle('open', g === mine); });
+    }
+    /* An active entry inside a scrolled rail must be ON SCREEN, or the highlight is useless. */
+    function keepInView(button){
+      if (!button || nav.scrollHeight <= nav.clientHeight) return;
+      /* The rail is position:fixed, so it IS the offsetParent of its own buttons and
+         button.offsetTop is ALREADY relative to it. Subtracting nav.offsetTop (the fixed rail's
+         own offset, about half the viewport height because of top:50%) drove every coordinate
+         negative and snapped the rail to the top on every section change. Measured at 1440x900
+         on a 220-section page: nav.offsetTop 450, rail 1149px inside an 872px box, the active
+         entry left at 974px, off screen, with scrollTop 0. */
+      var top = button.offsetTop;
+      if (top < nav.scrollTop + 8) nav.scrollTop = Math.max(0, top - 8);
+      else if (top + button.offsetHeight > nav.scrollTop + nav.clientHeight - 8) {
+        nav.scrollTop = top + button.offsetHeight - nav.clientHeight + 8;
+      }
+    }
+    function setActive(id){
+      var current = null;
+      buttons.forEach(function(b){
+        var on = b.getAttribute('data-target') === id;
+        b.classList.toggle('active', on);
+        if (on) current = b;
+      });
+      openGroupOf(current);
+      keepInView(current);
+    }
+    var observer = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){ intersecting[entry.target.id] = entry.isIntersecting; });
+      for (var i = order.length - 1; i >= 0; i--) {
+        if (intersecting[order[i]]) { setActive(order[i]); return; }
+      }
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    buttons.forEach(function(b){
+      var el = document.getElementById(b.getAttribute('data-target'));
+      if (el) observer.observe(el);
+      b.addEventListener('click', function(){
+        var t = document.getElementById(b.getAttribute('data-target'));
+        if (!t) return;
+        /* rAF-eased scroll: native smooth silently JUMPS under reduced-motion and some
+           browser builds. The animation must run every time. */
+        var start = window.pageYOffset;
+        var end = t.getBoundingClientRect().top + start - 14;
+        var dur = 480, t0 = null;
+        function ease(x){ return x < .5 ? 2*x*x : -1 + (4 - 2*x)*x; }
+        function step(ts){
+          if (!t0) t0 = ts;
+          var p = Math.min(1, (ts - t0) / dur);
+          window.scrollTo(0, start + (end - start) * ease(p));
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+    });
+    /* The nav must never sit on top of the reading column. The column width is draggable, so
+       the fit is measured rather than assumed, on load, on resize and after every drag. */
+    function fitNav(){
+      var wrap = document.querySelector('.wrap');
+      if (!wrap) return;
+      var right = wrap.getBoundingClientRect().right;
+      var needed = nav.scrollWidth || 190;
+      nav.classList.toggle('cramped', right + needed + 12 > window.innerWidth);
+    }
+    window.addEventListener('resize', fitNav);
+    document.addEventListener('hd:width', fitNav);
+    nav.classList.add('visible'); // visible from the very top - never scroll-gated
+    if (groups.length) groups[0].classList.add('open'); // a rail that opens closed is a rail of stubs
+    fitNav();
+  }
+
+  /* ---- width handles ---- */
+  (function(){
+    var grips = [].slice.call(document.querySelectorAll('.grip'));
+    if (!grips.length) return;
+    function bounds(){
+      var cs = getComputedStyle(root);
+      return {
+        min: parseInt(cs.getPropertyValue('--wrap-min'), 10) || 720,
+        max: parseInt(cs.getPropertyValue('--wrap-max'), 10) || 1600
+      };
+    }
+    function current(){
+      var wrap = document.querySelector('.wrap');
+      return wrap ? wrap.getBoundingClientRect().width : 1000;
+    }
+    function apply(px){
+      var b = bounds();
+      var w = Math.max(b.min, Math.min(b.max, Math.round(px)));
+      root.style.setProperty('--wrap-w', w + 'px');
+      try { localStorage.setItem('hd-width-' + KEY, String(w)); } catch (e) {}
+      document.dispatchEvent(new CustomEvent('hd:width'));
+    }
+    function reset(){
+      root.style.removeProperty('--wrap-w');
+      try { localStorage.removeItem('hd-width-' + KEY); } catch (e) {}
+      document.dispatchEvent(new CustomEvent('hd:width'));
+    }
+    try {
+      var savedWidth = parseInt(localStorage.getItem('hd-width-' + KEY), 10);
+      if (savedWidth) apply(savedWidth);
+    } catch (e) {}
+    grips.forEach(function(grip){
+      grip.addEventListener('pointerdown', function(ev){
+        ev.preventDefault();
+        grip.setPointerCapture(ev.pointerId);
+        grip.classList.add('dragging');
+        var startX = ev.clientX, startW = current();
+        function move(e){
+          var dx = e.clientX - startX;
+          /* dragging either edge outward widens: the left grip reads inverted */
+          apply(startW + (grip.classList.contains('l') ? -dx : dx) * 2);
+        }
+        function up(){
+          grip.classList.remove('dragging');
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+        }
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      });
+      grip.addEventListener('dblclick', reset);
+      grip.addEventListener('keydown', function(e){
+        if (e.key === 'ArrowLeft')  { apply(current() - 40); e.preventDefault(); }
+        if (e.key === 'ArrowRight') { apply(current() + 40); e.preventDefault(); }
+        if (e.key === 'Home' || e.key === 'Escape') { reset(); e.preventDefault(); }
+      });
+    });
+  })();
+
+  /* ---- data tables: filter + sort ---- */
+  (function(){
+    function debounce(fn, ms){
+      var t; return function(){ var a = arguments, c = this; clearTimeout(t); t = setTimeout(function(){ fn.apply(c, a); }, ms); };
+    }
+    [].slice.call(document.querySelectorAll('table.dt')).forEach(function(table){
+      var body = table.tBodies[0];
+      if (!body) return;
+      var rows = [].slice.call(body.rows);
+      var wrap = table.closest('.dt-wrap') || table.parentNode;
+      var box = wrap.querySelector('.dt-filter');
+      var count = wrap.querySelector('.dt-count');
+      var total = rows.length;
+      function report(shown){
+        if (count) count.textContent = shown === total ? (total.toLocaleString() + ' rows') : (shown.toLocaleString() + ' of ' + total.toLocaleString() + ' rows');
+      }
+      report(total);
+      if (box) {
+        box.addEventListener('input', debounce(function(){
+          var q = box.value.trim().toLowerCase();
+          var shown = 0;
+          rows.forEach(function(r){
+            var hit = !q || r.textContent.toLowerCase().indexOf(q) !== -1;
+            r.classList.toggle('hide', !hit);
+            if (hit) shown++;
+          });
+          report(shown);
+        }, 140));
+      }
+      [].slice.call(table.tHead ? table.tHead.rows[0].cells : []).forEach(function(th, index){
+        var kind = th.getAttribute('data-sort');
+        if (!kind) return;
+        th.setAttribute('role', 'button');
+        th.setAttribute('tabindex', '0');
+        function activate(){
+          var asc = th.getAttribute('aria-sort') !== 'ascending';
+          [].slice.call(table.tHead.rows[0].cells).forEach(function(c){ c.removeAttribute('aria-sort'); });
+          th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
+          var sorted = rows.slice().sort(function(a, b){
+            var x = (a.cells[index] ? a.cells[index].textContent : '').trim();
+            var y = (b.cells[index] ? b.cells[index].textContent : '').trim();
+            if (kind === 'num') {
+              var nx = parseFloat(x.replace(/[^0-9.eE+-]/g, '')) || 0;
+              var ny = parseFloat(y.replace(/[^0-9.eE+-]/g, '')) || 0;
+              return asc ? nx - ny : ny - nx;
+            }
+            return asc ? x.localeCompare(y, undefined, {numeric:true}) : y.localeCompare(x, undefined, {numeric:true});
+          });
+          var frag = document.createDocumentFragment();
+          sorted.forEach(function(r){ frag.appendChild(r); });
+          body.appendChild(frag);
+        }
+        th.addEventListener('click', activate);
+        th.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
+      });
+    });
+  })();
+
+  /* ---- premium tooltip: any element with data-tip ---- */
+  (function(){
+    var tip = document.getElementById('tip');
+    if (!tip) return;
+    var shownAt = 0;
+    function show(el, x, y){
+      tip.innerHTML = '<b>' + (el.getAttribute('data-tip') || '') + '</b>' +
+        (el.getAttribute('data-tip-value') ? '<span class="v">' + el.getAttribute('data-tip-value') + '</span>' : '');
+      tip.classList.add('on'); tip.setAttribute('aria-hidden', 'false'); shownAt = Date.now();
+      var r = tip.getBoundingClientRect();
+      var left = x + 14, top = y - r.height - 12;
+      if (left + r.width > window.innerWidth - 8) left = x - r.width - 14;
+      if (top < 8) top = y + 18;
+      tip.style.left = Math.max(8, left) + 'px';
+      tip.style.top = top + 'px';
+    }
+    function hide(){ tip.classList.remove('on'); tip.setAttribute('aria-hidden', 'true'); }
+    document.addEventListener('pointermove', function(e){
+      var el = e.target.closest && e.target.closest('[data-tip]');
+      if (el) show(el, e.clientX, e.clientY); else hide();
+    });
+    document.addEventListener('pointerdown', function(e){
+      var el = e.target.closest && e.target.closest('[data-tip]');
+      if (el && e.pointerType !== 'mouse') { show(el, e.clientX, e.clientY); setTimeout(hide, 2600); }
+    });
+    document.addEventListener('scroll', function(){ if (Date.now() - shownAt > 400) hide(); }, {passive:true});
+  })();
+})();
+</script>
+
+<!-- LIVE-RELOAD (the screen-share helper). Served over HTTP from the local
+     serve.py it re-fetches itself every 2s and reloads when the file changes.
+     From disk (file://) and on any other host it does nothing. -->
+<script>
+(function(){
+  if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  if (new URLSearchParams(location.search).has('static')) return;
+  var current = null;
+  function check(){
+    if (document.hidden) return;
+    fetch(location.pathname + location.search, { cache: 'no-store' })
+      .then(function(r){ if (!r.ok) throw new Error('poll ' + r.status); return r.text(); })
+      .then(function(t){
+        if (current === null) { current = t; return; }
+        if (t !== current) {
+          try { sessionStorage.setItem('hd-reload-scroll', String(window.scrollY)); } catch (e) {}
+          location.reload();
+        }
+      })
+      .catch(function(){ /* server gone or transient - keep trying quietly */ });
+  }
+  try {
+    var saved = sessionStorage.getItem('hd-reload-scroll');
+    if (saved !== null) {
+      sessionStorage.removeItem('hd-reload-scroll');
+      window.scrollTo(0, parseInt(saved, 10) || 0);
+    }
+  } catch (e) {}
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) check(); });
+  setInterval(check, 2000);
+  check();
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,24 @@
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.venv/
+venv/
+*.egg-info/
+
+# Node, only ever here for a local Playwright the lint can find
+node_modules/
+
+# Editors and operating systems
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Build output people generate while trying the toolchain out
+/out.html
+/out.pdf
+*.local.html
+
+# The local harness setting that lets a background agent edit this checkout
+.claude/

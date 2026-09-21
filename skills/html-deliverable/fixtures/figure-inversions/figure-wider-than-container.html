@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-audience="internal">
+<head>
+<meta charset="utf-8">
+<title>A figure wider than the column it sits in</title>
+<style>
+  body{margin:0; font-family:system-ui, sans-serif; background:#fff; color:#22262b}
+  .page{max-width:900px; margin:0 auto; padding:24px}
+  figure{margin:16px 0}
+  .clip{overflow:hidden}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>A figure wider than the column it sits in</h1>
+<p>The SVG is 760 pixels wide inside a 240 pixel figure that does not scroll, so the drawing runs out of the page. A screenshot of the left-hand side of it looks perfectly fine.</p>
+<div class="clip">
+<figure class="flow" aria-label="The map that overruns its column" style="width:240px; overflow-x:visible">
+  <svg width="760" height="100" viewBox="0 0 760 100" role="img" style="width:760px"><title>wide</title>
+    <rect class="flow-node" data-node="only" x="20" y="20" width="700" height="58" rx="10" fill="#eef1f8" stroke="#0d32b2"></rect>
+    <text class="flow-label" data-node="only" x="370" y="54" text-anchor="middle" font-size="11.5">One very wide box</text>
+  </svg>
+</figure>
+</div>
+</div>
+</body>
+</html>

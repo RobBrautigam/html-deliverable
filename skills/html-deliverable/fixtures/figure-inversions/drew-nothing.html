@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-audience="internal">
+<head>
+<meta charset="utf-8">
+<title>A figure that drew nothing</title>
+<style>
+  body{margin:0; font-family:system-ui, sans-serif; background:#fff; color:#22262b}
+  .page{max-width:900px; margin:0 auto; padding:24px}
+  figure{margin:16px 0}
+  .clip{overflow:hidden}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>A figure that drew nothing</h1>
+<p>Two arms of one rule: a figure with no SVG at all, and an SVG that is present and empty. Both look like white space in a screenshot and like a missing explanation to a reader.</p>
+<figure class="flow" aria-label="The map that never rendered">
+  <figcaption>No SVG in the figure at all.</figcaption>
+</figure>
+
+<figure class="flow" aria-label="The map that rendered empty">
+  <svg width="400" height="80" viewBox="0 0 400 80" role="img"><title>empty</title></svg>
+  <figcaption>An SVG with zero nodes in it.</figcaption>
+</figure>
+</div>
+</body>
+</html>

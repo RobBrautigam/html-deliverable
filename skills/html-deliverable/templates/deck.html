@@ -1,0 +1,73 @@
+<!-- SURFACE: deck -->
+<!-- A CALL DOCUMENT, not a 16:9 slide deck: the class of page that gets screen-shared on a
+     video call and that keeps working after the call. The spine is the
+     agenda: every section is a numbered beat with its own outcome line, and the page closes on
+     decisions and an owner-dated action table. It is deliberately not a swipe deck: these are
+     read and shared as documents in a browser, and a slide deck loses the links table, the
+     right-side nav and printing. -->
+
+<!-- SURFACE:CSS -->
+  /* deck surface: the agenda spine, the beat header, the outcome line, the action table */
+  .agenda{display:flex; flex-wrap:wrap; gap:8px 10px; margin:4px 0 2px}
+  .agenda a{display:inline-flex; align-items:center; gap:8px; text-decoration:none; color:var(--ink);
+    background:var(--panel); border:1px solid var(--line); border-radius:22px; padding:7px 14px; font-size:.88rem}
+  .agenda a b{color:var(--acc); font-variant-numeric:tabular-nums}
+  .agenda a:hover{border-color:var(--acc)}
+  .beat{display:flex; align-items:baseline; gap:12px; margin:0 0 2px}
+  .beat .n{font-family:Georgia,serif; font-size:1.6rem; color:var(--acc); line-height:1}
+  .outcome{background:var(--green-soft); border-left:4px solid var(--green); border-radius:8px;
+    padding:10px 14px; margin:10px 0 14px; font-size:.93rem}
+  .outcome b{color:var(--green)}
+  .actions td{vertical-align:top}
+  .actions .who{font-weight:700; white-space:nowrap}
+  .actions .due{white-space:nowrap; color:var(--muted); font-size:.86rem}
+  .live{display:inline-block; background:var(--acc-soft); border-radius:20px; padding:4px 12px;
+    font-size:.78rem; color:var(--acc); font-weight:700; letter-spacing:.04em}
+<!-- /SURFACE:CSS -->
+
+<!-- SURFACE:BODY -->
+
+  <header class="cover">
+    <div class="eyebrow">{{EYEBROW}}</div>
+    <h1>{{TITLE}}</h1>
+    <p class="lede">{{LEDE}}</p>
+    <div class="cover-meta">
+      <span><b>Prepared for</b> {{PREPARED_FOR}}</span>
+      <span><b>By</b> {{FROM}}</span>
+      <span><b>Date</b> {{DATE}}</span>
+    </div>
+    <p style="margin:14px 0 0"><span class="live">Live document</span> <span class="dim tiny">Everything here updates as the work moves. The link stays the same.</span></p>
+  </header>
+
+{{VERDICT}}
+
+  <section id="agenda">
+    <div class="sec-num">The agenda</div>
+    <div class="agenda">
+{{AGENDA}}
+    </div>
+  </section>
+
+{{LINKS}}
+{{CONTENT}}
+
+  <!-- OPTIONAL:ACTIONS -->
+  <section id="actions">
+    <div class="sec-num">What happens next</div>
+    <h2>Owners and dates</h2>
+    <p class="sub">Every line has a name and a date. Anything without both is a decision, not an action.</p>
+    <div class="scroll"><table class="actions">
+      <thead><tr><th>Action</th><th>Owner</th><th>By</th><th>Status</th></tr></thead>
+      <tbody>
+{{ACTION_ROWS}}
+        <!-- hand-written shape: <tr><td>the action</td><td class="who">Name</td><td class="due">Friday</td><td><span class="chip a">OPEN</span></td></tr> -->
+      </tbody>
+    </table></div>
+  </section>
+  <!-- /OPTIONAL:ACTIONS -->
+
+  <div class="foot">
+    {{FOOT}}
+  </div>
+
+<!-- /SURFACE:BODY -->

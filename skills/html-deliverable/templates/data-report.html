@@ -1,0 +1,111 @@
+<!-- SURFACE: data-report -->
+<!-- A NUMBERS PAGE: KPI cards, charts, the table the numbers came from, the insights, and the
+     methodology last. Two rules are load-bearing here and both have receipts:
+     1. EVERY chart lives in a wrapper with an explicit height. A responsive chart in a parent
+        with no height enters a ResizeObserver feedback loop and grows until the tab hangs
+        (HTML Anything's data-report skill carries the same warning for Chart.js; it applies to
+        ECharts in app code and to any resize-aware renderer).
+     2. Charts ship a PREMIUM custom tooltip, never the browser's native <title> popup. The
+        pointermove delegation below is the dependency-free version of that contract for a
+        static file.
+     Charts here are INLINE SVG on purpose: the house rule is self-contained, so no CDN chart
+     library ships in a deliverable. -->
+
+<!-- SURFACE:CSS -->
+  /* data-report surface: KPI cards, fixed-height chart frames, the custom tooltip, dense tables */
+  .kpis{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin:0 0 18px}
+  .kpi{background:var(--panel); border:1px solid var(--line); border-top:4px solid var(--acc);
+    border-radius:12px; padding:16px 18px; box-shadow:var(--shadow)}
+  .kpi.g{border-top-color:var(--green)} .kpi.a{border-top-color:var(--amber)} .kpi.r{border-top-color:var(--red)}
+  .kpi .n{font-family:Georgia,serif; font-size:1.9rem; line-height:1.05; font-variant-numeric:tabular-nums}
+  .kpi .l{font-size:.82rem; color:var(--muted); margin-top:7px}
+  .kpi .d{font-size:.8rem; margin-top:5px; font-weight:700}
+  .kpi .d.up{color:var(--green)} .kpi .d.down{color:var(--red)}
+  @media screen and (max-width:980px){ .kpis{grid-template-columns:repeat(2,1fr)} }
+  @media screen and (max-width:560px){ .kpis{grid-template-columns:1fr} }
+
+  /* THE FIXED HEIGHT IS THE POINT - never let a chart size itself from its parent */
+  .chart-frame{position:relative; height:280px; margin:6px 0 4px}
+  .chart-frame.mini{height:44px}
+  .chart-frame svg{width:100%; height:100%; display:block; overflow:visible}
+  .bar{fill:var(--acc); transition:fill .12s}
+  .bar:hover{fill:var(--green)}
+  .axis{stroke:var(--line); stroke-width:1}
+  .axlabel{fill:var(--muted); font-size:11px}
+  .gridline{stroke:var(--line); stroke-width:1; stroke-dasharray:3 4}
+
+  #nc-tip{position:fixed; z-index:80; pointer-events:none; opacity:0; transform:translate(-50%,-115%);
+    background:var(--panel); color:var(--ink); border:1px solid var(--line); border-radius:10px;
+    padding:9px 12px; font-size:.84rem; box-shadow:0 6px 24px rgba(0,0,0,.18); transition:opacity .11s;
+    max-width:260px}
+  #nc-tip b{display:block; font-size:.92rem; margin-bottom:2px}
+  #nc-tip .v{color:var(--acc); font-weight:700; font-variant-numeric:tabular-nums}
+
+  table.data th{position:sticky; top:0; background:var(--panel); z-index:2}
+  table.data tbody tr:nth-child(even){background:var(--acc-soft)}
+  table.data tbody tr:hover{background:var(--green-soft)}
+  table.data td.num{text-align:right; font-variant-numeric:tabular-nums; white-space:nowrap}
+  table.data tbody tr{content-visibility:auto; contain-intrinsic-size:auto 38px}
+  @media print{ table.data tbody tr{content-visibility:visible} }
+  details.method{background:var(--panel); border:1px solid var(--line); border-radius:12px; padding:14px 18px; margin-top:16px}
+  details.method summary{cursor:pointer; font-weight:700}
+<!-- /SURFACE:CSS -->
+
+<!-- SURFACE:BODY -->
+
+  <header class="cover">
+    <div class="eyebrow">{{EYEBROW}}</div>
+    <h1>{{TITLE}}</h1>
+    <p class="lede">{{LEDE}}</p>
+    <div class="cover-meta">
+      <span><b>Prepared for</b> {{PREPARED_FOR}}</span>
+      <span><b>From</b> {{FROM}}</span>
+      <span><b>Date</b> {{DATE}}</span>
+      <span><b>Source</b> {{SOURCE}}</span>
+    </div>
+  </header>
+
+{{VERDICT}}
+
+  <div class="kpis">
+{{KPIS}}
+  </div>
+
+{{TOC}}
+{{LINKS}}
+{{CONTENT}}
+
+  <details class="method">
+    <summary>How these numbers were produced</summary>
+    <p style="margin:10px 0 0">{{METHOD}}</p>
+  </details>
+
+  <div class="foot">
+    {{FOOT}}
+  </div>
+
+<div id="nc-tip" role="status" aria-live="polite"></div>
+<script>
+/* Premium custom tooltip, pointermove delegation on any [data-chart] root.
+   Marks carry data-label and data-value; nothing uses a native <title>. */
+(function(){
+  var tip = document.getElementById('nc-tip');
+  if (!tip) return;
+  function hide(){ tip.style.opacity = '0'; }
+  document.addEventListener('pointermove', function(e){
+    var mark = e.target.closest ? e.target.closest('[data-label][data-value]') : null;
+    if (!mark){ hide(); return; }
+    tip.innerHTML = '<b></b><span class="v"></span>';
+    tip.querySelector('b').textContent = mark.getAttribute('data-label');
+    tip.querySelector('.v').textContent = mark.getAttribute('data-value');
+    var r = mark.getBoundingClientRect();
+    tip.style.left = (r.left + r.width / 2) + 'px';
+    tip.style.top = r.top + 'px';
+    tip.style.opacity = '1';
+  }, {passive:true});
+  document.addEventListener('pointerleave', hide, true);
+  window.addEventListener('scroll', hide, {passive:true});
+})();
+</script>
+
+<!-- /SURFACE:BODY -->

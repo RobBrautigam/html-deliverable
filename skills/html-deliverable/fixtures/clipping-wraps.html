@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Clipping fixture: the same value, wrapped</title>
+<!--
+  THE PASSING HALF of the clipping gate's inversion proof.
+
+  Byte-for-byte the same page as `clipping-overflows.html`, with the SAME values in the SAME
+  cards, except that `.stat .num` is allowed to wrap. The gate must PASS here and FAIL there.
+
+  The point of the pair is that the difference is one CSS declaration and nothing else: not the
+  content, not the widths, not the theme. A gate that passes both is not measuring the box, and a
+  gate that fails both is measuring the text.
+-->
+<style>
+  :root { --ink:#1a1a1a; --line:#dcdcdc; --paper:#ffffff; --muted:#666666; }
+  :root[data-theme="dark"] { --ink:#f0f0f0; --line:#333333; --paper:#141414; --muted:#999999; }
+  /* No OS-preference media block here on purpose: the house rule is that a page never switches
+     theme on the reader's system setting unasked, and lint.py refuses one. Naming the CSS
+     feature in a comment trips the same check, so it is described rather than spelled. The
+     render sets data-theme on <html> and both themes are measured that way. */
+  body { background:var(--paper); color:var(--ink); font:16px/1.5 system-ui, sans-serif;
+         margin:0; padding:24px 16px; }
+  .wrap { max-width:840px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 18px; }
+  .stat-row { display:grid; grid-template-columns:repeat(4, 1fr); gap:10px; }
+  /* IDENTICAL in both fixtures. A four-column row at phone width gives each card 56px,
+     which is too narrow for any value at all, so the pair would differ for a reason that
+     is not the one being proved. Both collapse the same way. */
+  @media (max-width: 760px) { .stat-row { grid-template-columns:repeat(2, 1fr); } }
+  .stat { border:1px solid var(--line); border-radius:8px; padding:12px; overflow:hidden; }
+  /* THE FIX. The value wraps rather than leaving the card. */
+  .stat .num { font:700 26px/1.2 system-ui, sans-serif; white-space:normal;
+               overflow-wrap:break-word; }
+  .stat .lbl { color:var(--muted); font-size:12px; margin-top:4px; white-space:normal; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Four cards, every value inside its own box</h1>
+  <div class="stat-row">
+    <div class="stat"><div class="num">$41,014.06</div><div class="lbl">Carried in</div></div>
+    <div class="stat"><div class="num">$7,475 to $12,131</div><div class="lab">Bounded range</div></div>
+    <div class="stat"><div class="num">$0.00</div><div class="lab">Business share</div></div>
+    <div class="stat"><div class="num">$28,131.94</div><div class="lab">Reclassified</div></div>
+  </div>
+</div>
+</body>
+</html>

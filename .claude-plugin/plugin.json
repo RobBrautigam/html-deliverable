@@ -1,0 +1,20 @@
+{
+  "name": "html-deliverable",
+  "description": "Build polished, standalone HTML documents from markdown, CSV or JSON, with a one-command build and a mandatory pre-delivery lint.",
+  "version": "1.0.0",
+  "author": {
+    "name": "Rob Brautigam"
+  },
+  "homepage": "https://github.com/RobBrautigam/html-deliverable",
+  "repository": "https://github.com/RobBrautigam/html-deliverable",
+  "license": "MIT",
+  "keywords": [
+    "skills",
+    "html",
+    "documents",
+    "reports",
+    "markdown",
+    "design-system",
+    "lint"
+  ]
+}

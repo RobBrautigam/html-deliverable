@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light" data-audience="internal">
+<head>
+<meta charset="utf-8">
+<title>A label painted under a shape that covers it</title>
+<style>
+  body{margin:0; font-family:system-ui, sans-serif; background:#fff; color:#22262b}
+  .page{max-width:900px; margin:0 auto; padding:24px}
+  figure{margin:16px 0}
+  .clip{overflow:hidden}
+</style>
+</head>
+<body>
+<div class="page">
+<h1>A label painted under a shape that covers it</h1>
+<p>The lane label is written first and a filled tag is painted over its right half. Document order is paint order in SVG, so the reader sees half a word. Found on the one-column layout of the repaired fixture, before this rule existed.</p>
+<figure class="flow" aria-label="The map with a covered lane label">
+  <svg width="500" height="140" viewBox="0 0 500 140" role="img"><title>covered</title>
+    <text class="flow-lane-label" data-lane="helpers" x="20" y="34" font-size="11" font-weight="700" letter-spacing="1.1">IT STARTS HELPERS</text>
+    <rect class="flow-mark" data-node="bridge" x="90" y="22" width="60" height="16" rx="8" fill="#b21447"></rect>
+    <text class="flow-mark-label" data-node="bridge" x="120" y="34" text-anchor="middle" font-size="9.5" font-weight="700" fill="#fff">MH1</text>
+    <rect class="flow-node" data-node="bridge" x="20" y="60" width="200" height="58" rx="10" fill="#eef1f8" stroke="#0d32b2"></rect>
+    <text class="flow-label" data-node="bridge" x="120" y="94" text-anchor="middle" font-size="11.5">Browser bridge</text>
+  </svg>
+</figure>
+</div>
+</body>
+</html>

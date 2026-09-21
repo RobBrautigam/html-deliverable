@@ -1,0 +1,1375 @@
+<!doctype html>
+<html lang="en" data-theme="light" data-audience="internal" data-look="classic">
+<head>
+<meta charset="utf-8">
+<meta name="description" content="Three months after the cutover: what changed, what it cost, and the one decision still open.">
+<meta name="document-kind" content="report">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Northwind Retail: the first quarter on the new platform</title>
+<style>
+
+  :root{
+    --bg:#f7f5f1; --panel:#ffffff; --panel-2:#fbfaf7; --ink:#1c1a17; --muted:#6b655c;
+    --line:#e6e1d8; --line-2:#efebe3; --grid:transparent;
+    --acc:#b8862f; --acc-2:#8a6320; --acc-soft:#f3e9d4; --acc-ink:#6d4f19;
+    --green:#3f7d54; --green-soft:#e6f0e8; --green-ink:#2c5c3c;
+    --amber:#b7791f; --amber-soft:#f7ecd6; --amber-ink:#8a5209;
+    --red:#b0413a; --red-soft:#f6e2e0; --red-ink:#87302a;
+    --violet:#6b3fa0; --violet-soft:#f1e9fb; --violet-ink:#55307f;
+    --ask:#a32d68; --ask-soft:#fce8f1; --ask-ink:#83204f;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+    --on-acc:#ffffff;
+    --radius:14px; --radius-sm:10px;
+    --font-head:Georgia,"Times New Roman",serif;
+    --font-body:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    --font-mono:ui-monospace,SFMono-Regular,"SF Mono",Menlo,Consolas,monospace;
+    --wrap-w:1000px;
+    --wrap-min:720px; --wrap-max:1600px;
+    color-scheme: light;
+  }
+  :root[data-theme="light"]{
+    --bg:#f7f5f1; --panel:#ffffff; --panel-2:#fbfaf7; --ink:#1c1a17; --muted:#6b655c;
+    --line:#e6e1d8; --line-2:#efebe3; --grid:transparent;
+    --acc:#b8862f; --acc-2:#8a6320; --acc-soft:#f3e9d4; --acc-ink:#6d4f19;
+    --green:#3f7d54; --green-soft:#e6f0e8; --green-ink:#2c5c3c;
+    --amber:#b7791f; --amber-soft:#f7ecd6; --amber-ink:#8a5209;
+    --red:#b0413a; --red-soft:#f6e2e0; --red-ink:#87302a;
+    --violet:#6b3fa0; --violet-soft:#f1e9fb; --violet-ink:#55307f;
+    --ask:#a32d68; --ask-soft:#fce8f1; --ask-ink:#83204f;
+    --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.05);
+    --on-acc:#ffffff;
+  }
+  :root[data-theme="dark"]{
+    --bg:#16140f; --panel:#1f1c16; --panel-2:#241f18; --ink:#efe9dd; --muted:#a49c8c;
+    --line:#332e25; --line-2:#2b261e; --grid:transparent;
+    --acc:#d9a94a; --acc-2:#e8c67a; --acc-soft:#2a2213; --acc-ink:#f0d49a;
+    --green:#78b98d; --green-soft:#17241b; --green-ink:#a9dcb9;
+    --amber:#d9a441; --amber-soft:#2a2113; --amber-ink:#f0cf8e;
+    --red:#e0847c; --red-soft:#2a1614; --red-ink:#f2b3ac;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 8px 24px rgba(0,0,0,.35);
+    --violet:#b79ae0; --violet-soft:#241a3a; --violet-ink:#d6c4f2;
+    --ask:#eb95bd; --ask-soft:#341326; --ask-ink:#f7bcd6;
+    --on-acc:#16140f;
+    color-scheme: dark;
+  }
+
+  :root[data-look="tint"],
+  :root[data-look="tint"][data-theme="light"]{
+    --bg:#edf1f5; --panel:#ffffff; --panel-2:#fafbfd; --ink:#22262b; --muted:#5b6672;
+    --line:#d7dee7; --line-2:#e8edf2; --grid:#e8edf2;
+    --acc:#1b4d7a; --acc-2:#0e7490; --acc-soft:#e4f1f6; --acc-ink:#123a5e;
+    --green:#1f7a4c; --green-soft:#e3f2ea; --green-ink:#145c39;
+    --amber:#b4690e; --amber-soft:#fdf0de; --amber-ink:#8a5209;
+    --red:#b0413a; --red-soft:#f9e6e4; --red-ink:#87302a;
+    --violet:#6b3fa0; --violet-soft:#f1e9fb; --violet-ink:#55307f;
+    --ask:#a32d68; --ask-soft:#fce8f1; --ask-ink:#83204f;
+    --shadow:0 1px 2px rgba(16,24,64,.05),0 10px 30px rgba(16,24,64,.07);
+    --on-acc:#ffffff;
+    --font-head:Georgia,"Times New Roman",serif;
+    --wrap-w:1080px;
+    color-scheme: light;
+  }
+  :root[data-look="tint"][data-theme="dark"]{
+    --bg:#0e1230; --panel:#161b3a; --panel-2:#1b2145; --ink:#e8eaf2; --muted:#a9b1bd;
+    --line:#2a3150; --line-2:#222846; --grid:#161b3a;
+    --acc:#8fb6e0; --acc-2:#5cc3e6; --acc-soft:#13304a; --acc-ink:#c4dcf2;
+    --green:#5ed39b; --green-soft:#143526; --green-ink:#9fe7c3;
+    --amber:#f3a95a; --amber-soft:#3a2a14; --amber-ink:#f7c98e;
+    --red:#e0847c; --red-soft:#2a1614; --red-ink:#f2b3ac;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 10px 30px rgba(0,0,0,.4);
+    --violet:#b79ae0; --violet-soft:#241a3a; --violet-ink:#d6c4f2;
+    --ask:#eb95bd; --ask-soft:#341326; --ask-ink:#f7bcd6;
+    --on-acc:#0e1230;
+    color-scheme: dark;
+  }
+
+  *{box-sizing:border-box}
+  html{scroll-behavior:auto}
+  img{max-width:100%; height:auto}
+  body{
+    margin:0; color:var(--ink);
+    background:var(--bg);
+    background-image:linear-gradient(var(--grid) 1px, transparent 1px),
+                     linear-gradient(90deg, var(--grid) 1px, transparent 1px);
+    background-size:28px 28px;
+    background-attachment:fixed;
+    font:16px/1.62 var(--font-body);
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--wrap-w); margin:0 auto; padding:40px 24px 80px; overflow-wrap:break-word}
+  @media screen and (min-width:1200px){
+    .wrap{max-width:min(var(--wrap-w), calc(100vw - 450px))}
+  }
+  h1,h2,h3,h4{font-family:var(--font-head); font-weight:600; line-height:1.2; letter-spacing:-.01em}
+  h1{font-size:2.15rem; margin:0 0 6px}
+  h2{font-size:1.5rem; margin:0 0 4px}
+  h3{font-size:1.12rem; margin:22px 0 8px}
+  h4{font-size:1rem; margin:18px 0 6px}
+  a{color:var(--acc); text-decoration:none; overflow-wrap:break-word}
+  a:hover{text-decoration:underline}
+  p{margin:0 0 12px}
+  ::selection{background:var(--acc-soft); color:var(--acc-ink)}
+  .eyebrow{font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--acc); font-weight:700; margin-bottom:14px}
+  .lede{font-size:1.06rem; color:var(--muted)}
+  header.cover{border-bottom:2px solid var(--acc); padding-bottom:26px; margin-bottom:26px}
+  .cover-meta{display:flex; flex-wrap:wrap; gap:6px 22px; margin-top:16px; font-size:.9rem; color:var(--muted)}
+  .cover-meta b{color:var(--ink); font-weight:600}
+  section{background:var(--panel); border:1px solid var(--line); border-radius:var(--radius); padding:24px 26px; margin:0 0 20px; box-shadow:var(--shadow)}
+  section > .sec-num{font-family:var(--font-head); color:var(--acc); font-size:.85rem; font-weight:700; letter-spacing:.04em}
+
+  .part-head{margin:46px 0 18px; padding:0 4px; break-inside:avoid}
+  .part-head:first-child{margin-top:4px}
+  .part-num{font:700 .72rem/1 var(--font-body); letter-spacing:.16em; text-transform:uppercase;
+    color:var(--acc); margin-bottom:10px}
+  .part-title{font-size:1.95rem; margin:0; padding-bottom:12px; border-bottom:2px solid var(--acc)}
+  .part-head > p{margin:14px 0 0; color:var(--muted); font-size:1rem; max-width:70ch}
+  .part-head > p:last-child{margin-bottom:0}
+  section > h3.sec-title{font-size:1.5rem; margin:0 0 4px}
+  section > h3.sec-title + *{margin-top:10px}
+  .sub{color:var(--muted); font-size:.92rem; margin:2px 0 14px}
+  .foot{color:var(--muted); font-size:.82rem; text-align:center; margin-top:34px; line-height:1.6}
+
+  .verdict{background:var(--green-soft); border:1px solid var(--green); border-left:4px solid var(--green); border-radius:var(--radius-sm); padding:16px 18px; margin:0 0 20px; font-size:.95rem}
+  .verdict strong{color:var(--green-ink)}
+  .warn{background:var(--amber-soft); border:1px solid var(--amber); border-left:4px solid var(--amber); border-radius:var(--radius-sm); padding:16px 18px; margin:0 0 30px; font-size:.95rem}
+  .warn strong{color:var(--amber-ink)}
+  .callout{background:var(--acc-soft); border-radius:var(--radius-sm); padding:12px 16px; margin:12px 0; font-size:.93rem}
+  code{background:var(--acc-soft); border-radius:4px; padding:1px 5px; font-size:.88em;
+       font-family:var(--font-mono); overflow-wrap:anywhere}
+  pre{background:var(--acc-soft); border-radius:var(--radius-sm); padding:12px 14px; margin:12px 0;
+      white-space:pre-wrap; overflow-wrap:anywhere; max-width:100%}
+  pre code{background:none; padding:0; font-size:.86em}
+  .facts > .cell, .hero-stats > .stat, .dt-controls > *{min-width:0}
+  .mono{font-family:var(--font-mono); font-size:.92em}
+
+  .facts{display:grid; grid-template-columns:repeat(2,1fr); gap:1px; background:var(--line); border:1px solid var(--line); border-radius:12px; overflow:hidden; margin:8px 0 4px}
+  .facts .cell{background:var(--panel); padding:12px 14px}
+  .facts .k{font-size:.7rem; letter-spacing:.08em; text-transform:uppercase; color:var(--muted); margin-bottom:3px}
+  .facts .v{font-size:.98rem; font-weight:600}
+  @media screen and (max-width:560px){ .facts{grid-template-columns:1fr} }
+
+  table{width:100%; border-collapse:collapse; margin:10px 0 6px; font-size:.92rem}
+  .scroll{overflow-x:auto; max-width:100%}
+  @media screen and (max-width:760px){
+    .sec > table, section > table{display:block; overflow-x:auto; max-width:100%}
+  }
+  th,td{text-align:left; padding:9px 12px; border-bottom:1px solid var(--line); vertical-align:top}
+  th{font-size:.72rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); font-weight:700}
+  tbody tr:last-child td{border-bottom:none}
+  td.num,th.num{text-align:right; font-variant-numeric:tabular-nums}
+  .nw{white-space:nowrap}
+  tr.main td{border-bottom:none; padding-bottom:2px}
+  tr.sub td{padding-top:0; padding-bottom:8px; font-size:.8rem; line-height:1.5}
+  tr.sub td.desc b{color:var(--muted); font-weight:600; font-size:.72rem; text-transform:uppercase; letter-spacing:.04em}
+  .days{font-weight:700; color:var(--red); font-size:.76rem}
+  .dim{color:var(--muted)}
+  .tiny{font-size:.78rem}
+  .dim.tiny span + span{margin-left:14px}
+
+  .chip{display:inline-block; font-size:.72rem; font-weight:700; padding:2px 9px; border-radius:20px; letter-spacing:.02em; white-space:nowrap}
+  .chip.g{background:var(--green-soft); color:var(--green-ink)}
+  .chip.a{background:var(--amber-soft); color:var(--amber-ink)}
+  .chip.r{background:var(--red-soft); color:var(--red-ink)}
+  .chip.n{background:var(--acc-soft); color:var(--acc-ink)}
+  ul,ol{margin:6px 0 12px; padding-left:20px}
+  li{margin:4px 0}
+
+  .hero-verdict{font-family:var(--font-head); font-size:1.28rem; line-height:1.45; margin:0 0 16px}
+  .hero-verdict b{color:var(--green-ink)}
+  .hero-stats{display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:12px; margin:0 0 6px; align-items:center}
+  .stat{border-radius:12px; padding:16px 18px 14px; border:1px solid var(--line); border-top:4px solid var(--acc); background:var(--panel); box-shadow:var(--shadow); text-align:center}
+  .stat .num{font-family:var(--font-head); font-size:clamp(1.5rem, 2.4vw, 2.3rem); font-weight:700; line-height:1.1; letter-spacing:-.01em; font-variant-numeric:tabular-nums; white-space:nowrap}
+  .stat .lbl{font-size:.86rem; color:var(--muted); margin-top:4px; line-height:1.4}
+  .stat .lbl b{color:var(--ink)}
+  .stat.g{border-top-color:var(--green); background:var(--green-soft)} .stat.g .num{color:var(--green-ink)}
+  .stat.r{border-top-color:var(--red); background:var(--red-soft)} .stat.r .num{color:var(--red-ink)}
+  .stat.a{border-top-color:var(--amber); background:var(--amber-soft)} .stat.a .num{color:var(--amber-ink)}
+  .stat.n .num{color:var(--acc)}
+  @media screen and (max-width:980px){ .hero-stats{grid-template-columns:repeat(2,1fr)} }
+  @media screen and (max-width:600px){ .hero-stats{grid-template-columns:1fr} }
+
+  .t-ink{color:var(--ink)} .t-acc{color:var(--acc)} .t-green{color:var(--green)}
+  .t-amber{color:var(--amber)} .t-red{color:var(--red)} .t-muted{color:var(--muted)}
+
+  .toc{display:flex; flex-wrap:wrap; gap:8px 10px; margin:2px 0 4px}
+  .toc a{display:inline-block; background:var(--panel); border:1px solid var(--line); border-radius:20px; padding:6px 14px; font-size:.84rem; font-weight:600; color:var(--ink)}
+  .toc a b{color:var(--acc); font-family:var(--font-head); margin-right:6px}
+  .toc a:hover{text-decoration:none; border-color:var(--acc); color:var(--acc)}
+  .toc-part{margin:14px 0 0}
+  .toc-part:first-child{margin-top:2px}
+  .toc-part-name{display:block; font-family:var(--font-head); font-size:1.02rem; font-weight:600;
+    color:var(--ink); margin:0 0 8px}
+  .toc-part-name b{color:var(--acc); margin-right:8px; font-variant-numeric:tabular-nums}
+  .toc-part-name:hover{color:var(--acc); text-decoration:none}
+  .toc-kids{margin:0 0 2px; padding-left:16px; border-left:2px solid var(--line)}
+  .toc-kids a{font-size:.8rem; padding:5px 12px}
+
+  #sidenav{
+    position:fixed; right:14px; top:50%; transform:translateY(-50%) translateX(28px);
+    display:flex; flex-direction:column; gap:2px; z-index:40;
+    opacity:0; pointer-events:none; transition:opacity .5s, transform .5s;
+    max-height:calc(100vh - 28px); overflow-y:auto; overscroll-behavior:contain;
+    scrollbar-width:thin; scrollbar-color:var(--line) transparent;
+  }
+  #sidenav::-webkit-scrollbar{width:6px}
+  #sidenav::-webkit-scrollbar-track{background:transparent}
+  #sidenav::-webkit-scrollbar-thumb{background:var(--line); border-radius:3px}
+  #sidenav:hover::-webkit-scrollbar-thumb{background:var(--line-2)}
+  #sidenav.visible{opacity:1; transform:translateY(-50%) translateX(0); pointer-events:auto}
+  #sidenav button{
+    font:600 13px/1.3 var(--font-body);
+    text-align:right; padding:6px 13px; border:none; border-right:2px solid transparent;
+    border-radius:6px 0 0 6px; background:none; color:var(--muted); cursor:pointer;
+    transition:color .2s, background .2s, border-color .2s;
+  }
+  #sidenav button:hover{color:var(--ink)}
+  #sidenav button.active{color:var(--acc); background:var(--acc-soft); border-right-color:var(--acc)}
+  #sidenav button:focus-visible{outline:2px solid var(--acc); outline-offset:2px}
+
+  #sidenav .nav-group{display:flex; flex-direction:column; gap:2px}
+  #sidenav button.nav-part{font:700 13px/1.3 var(--font-body); color:var(--ink); padding-top:9px}
+  #sidenav button.nav-part b{color:var(--acc); font-weight:700; margin-right:7px; font-variant-numeric:tabular-nums}
+  #sidenav .nav-kids{display:none; flex-direction:column; gap:1px; margin-bottom:4px}
+  #sidenav .nav-group.open > .nav-kids{display:flex}
+  #sidenav .nav-kids button{font:500 12px/1.3 var(--font-body); padding:4px 13px 4px 22px; opacity:.92}
+  @media screen and (max-width:1199px){ #sidenav{display:none} }
+  #sidenav.cramped{display:none}
+  html[data-framed] #sidenav, html[data-framed] .grip,
+  html[data-framed] .theme-toggle, html[data-framed] #tip{display:none !important}
+
+  .grip{
+    position:fixed; top:0; bottom:0; width:22px; z-index:45; cursor:ew-resize;
+    background:none; border:none; padding:0;
+    -webkit-user-select:none; user-select:none; touch-action:none;
+  }
+  .grip.l{left:0} .grip.r{right:0}
+  .grip::before{
+    content:""; position:absolute; top:50%; transform:translateY(-50%);
+    left:7px; width:4px; height:64px; border-radius:4px;
+    background:var(--acc); opacity:0; transition:opacity .18s;
+  }
+  .grip:hover::before, .grip:focus-visible::before, .grip.dragging::before{opacity:.55}
+  .grip:focus-visible{outline:none}
+  .grip:focus-visible::before{opacity:.85}
+  @media screen and (max-width:1199px){ .grip{display:none} }
+
+  .dt-controls{display:flex; flex-wrap:wrap; gap:10px; align-items:center; margin:10px 0 4px}
+  .dt-controls input[type="search"], .dt-controls input[type="text"]{
+    flex:1 1 220px; min-width:180px; font:inherit; font-size:.9rem; color:var(--ink);
+    background:var(--panel-2); border:1px solid var(--line); border-radius:8px; padding:8px 12px;
+  }
+  .dt-controls input:focus{outline:2px solid var(--acc); outline-offset:1px; border-color:var(--acc)}
+  .dt-count{font-size:.8rem; color:var(--muted); font-variant-numeric:tabular-nums; white-space:nowrap}
+  table.dt th[data-sort]{cursor:pointer; -webkit-user-select:none; user-select:none; white-space:nowrap}
+  table.dt th[data-sort]:hover{color:var(--acc)}
+  table.dt th[data-sort]::after{content:"\2195"; opacity:.3; margin-left:5px; font-size:.9em}
+  table.dt th[aria-sort="ascending"]::after{content:"\2191"; opacity:1}
+  table.dt th[aria-sort="descending"]::after{content:"\2193"; opacity:1}
+  table.dt tbody tr{content-visibility:auto; contain-intrinsic-size:auto 42px}
+  table.dt tbody tr.hide{display:none}
+  table.dt tbody tr:nth-child(even){background:var(--panel-2)}
+  table.dt tbody tr:nth-child(even of :not(.hide)){background:var(--panel-2)}
+  table.dt tbody tr:nth-child(odd of :not(.hide)){background:transparent}
+
+  #tip{
+    position:fixed; z-index:90; pointer-events:none; opacity:0; transform:translateY(4px);
+    transition:opacity .12s, transform .12s; max-width:280px;
+    background:var(--panel); border:1px solid var(--line); border-radius:10px;
+    box-shadow:var(--shadow); padding:9px 12px; font-size:.82rem; line-height:1.45; color:var(--ink);
+  }
+  #tip.on{opacity:1; transform:translateY(0)}
+  #tip b{display:block; font-size:.86rem; margin-bottom:2px}
+  #tip .v{font-variant-numeric:tabular-nums; color:var(--acc)}
+
+  .theme-toggle{position:fixed; top:14px; right:14px; background:var(--panel); border:1px solid var(--line); color:var(--muted); border-radius:8px; padding:6px 10px; font-size:.8rem; cursor:pointer; z-index:50; font-family:var(--font-body)}
+  .theme-toggle:hover{color:var(--ink); border-color:var(--acc)}
+
+  @media print{
+    .theme-toggle,#sidenav,.grip,#tip,.dt-controls{display:none}
+    body{background:#fff; color:#000; background-image:none}
+    section{box-shadow:none; break-inside:avoid; border-color:#ccc}
+    .wrap{max-width:100%; padding:0}
+    a{color:#000}
+    table.dt tbody tr{content-visibility:visible}
+    table.dt tbody tr.hide{display:table-row}
+  }
+
+
+
+  figure.flow{--flow-min:680px; margin:14px 0 18px; padding:0}
+  figure.flow svg{display:block; width:100%; height:auto}
+  figure.flow .flow-cap{font-size:.8rem; color:var(--muted); margin-top:8px; text-align:center}
+  @media screen and (max-width:760px){
+    figure.flow[data-flow-layout="lanes"]{overflow-x:auto; -webkit-overflow-scrolling:touch}
+    figure.flow[data-flow-layout="lanes"] svg{min-width:var(--flow-min, 680px)}
+    figure.flow[data-flow-layout="lanes"] .flow-cap::before{content:"Swipe the map sideways. "; color:var(--acc); font-weight:700}
+  }
+  figure.flow[data-flow-layout="stack"]{overflow-x:visible}
+  figure.flow[data-flow-layout="stack"] svg{min-width:0}
+</style>
+</head>
+<body>
+<button class="theme-toggle" onclick="(function(){var r=document.documentElement;var d=(r.getAttribute('data-theme')||'light')==='dark';r.setAttribute('data-theme',d?'light':'dark');try{localStorage.setItem('hd-theme',r.getAttribute('data-theme'))}catch(e){}})()">&#9680; theme</button>
+
+<button class="grip l" aria-label="Narrow or widen the page from the left edge"></button>
+<button class="grip r" aria-label="Narrow or widen the page from the right edge"></button>
+
+<nav id="sidenav" aria-label="Sections">
+  <button data-target="intro">Overview</button>
+  <button data-target="where-the-quarter-landed">Where the quarter…</button>
+  <button data-target="the-picture">The picture</button>
+  <button data-target="the-numbers-month-by-month">The numbers, month…</button>
+  <button data-target="what-it-cost">What it cost</button>
+  <button data-target="the-decision-still-open">The decision still…</button>
+  <button data-target="what-happens-next">What happens next</button>
+  <button data-target="links">Key links</button>
+</nav>
+
+<div class="wrap">
+
+
+  <header class="cover">
+    <div class="eyebrow">Quarterly review</div>
+    <h1>Northwind Retail: the first quarter on the new platform</h1>
+    <p class="lede">Three months after the cutover: what changed, what it cost, and the one decision still open.</p>
+    <div class="cover-meta">
+      <span><b>Prepared for</b> The Northwind board</span>
+      <span><b>From</b> Platform operations</span>
+      <span><b>Date</b> April 1, 2026</span>
+    </div>
+  </header>
+
+  <div class="verdict"><strong>The short answer:</strong> Revenue is 24 percent above plan and the cost per order is down a third; one decision is open, in section 5.</div>
+
+
+  <div class="hero-stats">
+    <div class="stat g"><div class="num">$1,240,000</div><div class="lbl">Revenue through the new checkout, against a $1,000,000 plan</div></div>
+    <div class="stat g"><div class="num">$2.80</div><div class="lbl">Cost per order, down from $4.20</div></div>
+    <div class="stat a"><div class="num">2</div><div class="lbl">Manual steps left in returns, both in section 5</div></div>
+  </div>
+
+  <section id="toc">
+    <div class="sec-num">Contents</div>
+    <div class="toc">
+      <a href="#intro">Overview</a>
+      <a href="#where-the-quarter-landed"><b>1</b>Where the quarter landed</a>
+      <a href="#the-picture"><b>2</b>The picture</a>
+      <a href="#the-numbers-month-by-month"><b>3</b>The numbers, month by month</a>
+      <a href="#what-it-cost"><b>4</b>What it cost</a>
+      <a href="#the-decision-still-open"><b>5</b>The decision still open</a>
+      <a href="#what-happens-next"><b>6</b>What happens next</a>
+    </div>
+  </section>
+
+  <section id="links">
+    <div class="sec-num">Key links</div>
+    <h2>Every destination named in this document</h2>
+    <div class="scroll"><table><thead><tr><th>What it is</th><th>Link</th></tr></thead><tbody><tr><td>docs.example.com/returns plan</td><td><a href="https://docs.example.com/northwind/returns-plan" target="_blank" rel="noopener noreferrer">https://docs.example.com/northwind/returns-plan</a></td></tr><tr><td>docs.example.com/cost model</td><td><a href="https://docs.example.com/northwind/cost-model" target="_blank" rel="noopener noreferrer">https://docs.example.com/northwind/cost-model</a></td></tr></tbody></table></div>
+  </section>
+
+  <section id="intro">
+    <div class="sec-num">Overview</div>
+<p>Three months after the cutover, the numbers are in. This is what changed, what it cost, and the
+one decision still open. Every figure below is read from the finance export of April 1, 2026.</p>
+  </section>
+
+  <section id="where-the-quarter-landed">
+    <div class="sec-num">1</div>
+    <h2>Where the quarter landed</h2>
+<p>Revenue through the new checkout came to $1,240,000 against a $1,000,000 plan, and the cost per
+order fell from $4.20 to $2.80. The gain is not the platform on its own: two thirds of it is the
+new returns flow, which stopped 1,100 orders a month from being refunded on the first contact.</p>
+<p>The one number that did not move is the average basket, which held at $64.00 all quarter. That was
+the plan. A basket that jumps in the first quarter of a replatform usually means the discount rules
+came across wrong.</p>
+  </section>
+
+  <section id="the-picture">
+    <div class="sec-num">2</div>
+    <h2>The picture</h2>
+<p>The path an order takes, end to end, and where the two remaining manual steps sit.</p>
+<figure class="flow" aria-label="How an order moves through the new platform">
+  <script type="application/json" class="flow-data">
+  {
+    "title": "How an order moves through the new platform",
+    "caption": "Two steps are still done by hand. Both are in the returns lane, and both are on the roadmap for the second quarter.",
+    "lanes": [
+      {"id": "shopper", "label": "SHOPPER", "tone": "acc-2"},
+      {"id": "platform", "label": "PLATFORM", "tone": "acc"},
+      {"id": "team", "label": "OUR TEAM", "tone": "violet"}
+    ],
+    "nodes": [
+      {"id": "cart", "col": 0, "lane": "shopper", "label": "Basket and checkout", "note": "LIVE", "tone": "green"},
+      {"id": "pay", "col": 1, "lane": "platform", "label": "Payment authorized", "note": "LIVE", "tone": "green"},
+      {"id": "pick", "col": 2, "lane": "platform", "label": "Warehouse pick", "note": "LIVE", "tone": "green"},
+      {"id": "ship", "col": 3, "lane": "platform", "label": "Carrier handoff", "note": "LIVE", "tone": "green"},
+      {"id": "ret", "col": 4, "lane": "shopper", "label": "Return requested", "note": "SELF SERVE", "tone": "acc-2"},
+      {"id": "grade", "col": 5, "lane": "team", "label": "Condition graded", "note": "BY HAND", "tone": "amber"},
+      {"id": "credit", "col": 6, "lane": "team", "label": "Credit issued", "note": "BY HAND", "tone": "amber"}
+    ],
+    "edges": [
+      {"from": "cart", "to": "pay"},
+      {"from": "pay", "to": "pick"},
+      {"from": "pick", "to": "ship"},
+      {"from": "ship", "to": "ret"},
+      {"from": "ret", "to": "grade"},
+      {"from": "grade", "to": "credit"}
+    ],
+    "marks": [
+      {"node": "grade", "label": "Q1"},
+      {"node": "credit", "label": "Q2"}
+    ]
+  }
+  </script>
+</figure>
+  </section>
+
+  <section id="the-numbers-month-by-month">
+    <div class="sec-num">3</div>
+    <h2>The numbers, month by month</h2>
+<p>Every row is read from the finance export. Sort any column, or filter the rows with the box above
+the table.</p>
+<div class="dt-wrap">
+  <div class="dt-controls">
+    <input type="search" class="dt-filter" placeholder="Filter these rows" aria-label="Filter the table">
+    <span class="dt-count"></span>
+  </div>
+  <div class="scroll"><table class="dt">
+<thead>
+<tr>
+<th data-sort="text">Month</th>
+<th data-sort="num">Orders</th>
+<th data-sort="num">Revenue</th>
+<th data-sort="num">Cost per order</th>
+<th data-sort="num">Returns</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>January</td>
+<td>12,000</td>
+<td>$380,000</td>
+<td>$3.40</td>
+<td>1,400</td>
+</tr>
+<tr>
+<td>February</td>
+<td>13,500</td>
+<td>$410,000</td>
+<td>$3.00</td>
+<td>1,250</td>
+</tr>
+<tr>
+<td>March</td>
+<td>15,000</td>
+<td>$450,000</td>
+<td>$2.80</td>
+<td>1,100</td>
+</tr>
+<tr>
+<td>April (part)</td>
+<td>5,200</td>
+<td>$156,000</td>
+<td>$2.75</td>
+<td>380</td>
+</tr>
+<tr>
+<td>May (forecast)</td>
+<td>16,000</td>
+<td>$480,000</td>
+<td>$2.70</td>
+<td>1,000</td>
+</tr>
+<tr>
+<td>June (forecast)</td>
+<td>17,000</td>
+<td>$510,000</td>
+<td>$2.65</td>
+<td>950</td>
+</tr>
+</tbody>
+</table></div>
+</div>
+<p>The April row is three weeks of actuals, not a month. The two forecast rows are the plan, and they
+are the only figures on this page that are not measured.</p>
+  </section>
+
+  <section id="what-it-cost">
+    <div class="sec-num">4</div>
+    <h2>What it cost</h2>
+<p>The build came in at $180,000 against a $200,000 budget, and the platform's own license is $4,000
+a month. Against a cost-per-order saving of $1.40 on roughly 15,000 orders a month, the build pays
+for itself in the eighth month after cutover.</p>
+  </section>
+
+  <section id="the-decision-still-open">
+    <div class="sec-num">5</div>
+    <h2>The decision still open</h2>
+<p>The returns lane has two manual steps, and only one of them is worth automating this quarter.</p>
+<ul>
+<li><strong>Condition grading</strong> takes about 90 seconds per return and needs a human eye on the item. The
+  cost of getting it wrong is a credit issued on an item that cannot be resold.</li>
+<li><strong>Credit issuing</strong> takes about 40 seconds and is entirely mechanical once the grade is set.</li>
+</ul>
+<p>The recommendation is to automate credit issuing in the second quarter and leave grading with the
+team, which saves about 12 hours a month at no risk. The full write-up is at
+<a href="https://docs.example.com/northwind/returns-plan" rel="noopener noreferrer" target="_blank">https://docs.example.com/northwind/returns-plan</a> and the cost model is at
+<a href="https://docs.example.com/northwind/cost-model" rel="noopener noreferrer" target="_blank">https://docs.example.com/northwind/cost-model</a> .</p>
+  </section>
+
+  <section id="what-happens-next">
+    <div class="sec-num">6</div>
+    <h2>What happens next</h2>
+<p>A short list, in order:</p>
+<ol>
+<li>Sign off the returns plan, or say which part of it to change.</li>
+<li>Book the second-quarter kickoff for the week of April 20.</li>
+<li>Hand the cost model to finance so the eighth-month payback lands in the forecast.</li>
+</ol>
+  </section>
+
+
+  <div class="foot">
+    Prepared April 1, 2026 from the finance export. Every figure except the two forecast rows is measured.
+  </div>
+
+
+</div>
+
+<div id="tip" role="status" aria-hidden="true"></div>
+
+<script data-page-frame="template">
+(function(){
+  var root = document.documentElement;
+  var KEY = location.pathname.replace(/[^a-z0-9]+/gi,'-').slice(-60);
+
+  /* ---- theme: only an EXPLICIT saved choice may override the light default ---- */
+  try { var saved = localStorage.getItem('hd-theme'); if (saved) root.setAttribute('data-theme', saved); } catch (e) {}
+
+  /* ---- inside a frame: the theme comes from the parent, the chrome hides, the height is
+     reported. A served page inside a sandboxed frame cannot read its saved theme or width
+     (localStorage throws in an opaque origin; every read above is guarded), so a dark app would
+     show a light document until the shell told it otherwise. The contract, with no product name
+     in any token because a delivered page names nobody: inbound, any message whose type ends in
+     "-theme" carrying theme "dark" or "light"; outbound,
+     `{type:'hd-document', height, sections:[{id,label,num,top}]}` after
+     `{type:'hd-document-ready'}`. Only numbers and strings cross, in both directions. Every
+     effect is gated on being framed, so a page in its own tab is untouched. ---- */
+  (function(){
+    var framed = false;
+    try { framed = window.parent !== window; } catch (e) { framed = true; }
+    if (root.hasAttribute('data-embedded')) root.setAttribute('data-framed', '1');
+    if (!framed) return;
+    /* The chrome hides once the frame is taller than the screen it is on: that is a frame a
+       shell has grown to the page, where a fixed rail would sit off the bottom of the window.
+       Re-checked on every resize, because the frame is short at load and grows after the first
+       height report. */
+    function decide(){
+      var screenH = (window.screen && window.screen.height) || 0;
+      if (screenH > 0 && window.innerHeight > screenH) root.setAttribute('data-framed', '1');
+    }
+    decide();
+    window.addEventListener('resize', decide);
+    window.addEventListener('message', function(ev){
+      var d = ev.data;
+      if (!d || typeof d.type !== 'string' || !/-theme$/.test(d.type)) return;
+      if (d.theme === 'dark' || d.theme === 'light') { root.setAttribute('data-theme', d.theme); setTimeout(send, 60); }
+    });
+    /* The height reporter. A page a shell SERVES may already carry the shell's own reporter
+       (a script tagged `data-...-reporter`, appended just before the closing body tag, below
+       this script; that tag is never spelled here because build.py inserts component script at
+       its first occurrence), and that one owns the channel: two reporters would announce ready
+       twice and the shell would answer twice. The check waits for the whole document to be
+       parsed. */
+    function servedReporter(){
+      var scripts = document.scripts, i, j;
+      for (i = 0; i < scripts.length; i++) {
+        for (j = 0; j < scripts[i].attributes.length; j++) {
+          if (/-reporter$/.test(scripts[i].attributes[j].name)) return true;
+        }
+      }
+      return false;
+    }
+    function top(el){ return Math.round(el.getBoundingClientRect().top + window.scrollY); }
+    function sections(){
+      var out = [], i, a, id, target, b, label, num, j;
+      var links = document.querySelectorAll('#toc a[href]');
+      for (i = 0; i < links.length; i++) {
+        a = links[i];
+        var href = a.getAttribute('href') || '';
+        if (href.charAt(0) !== '#' || href.length < 2) continue;
+        try { id = decodeURIComponent(href.slice(1)); } catch (e) { id = href.slice(1); }
+        target = document.getElementById(id);
+        if (!target) continue;
+        b = a.querySelector('b');
+        num = b ? b.textContent.replace(/\s+/g, ' ').trim().slice(0, 8) : '';
+        label = '';
+        for (j = 0; j < a.childNodes.length; j++) { if (a.childNodes[j] !== b) label += a.childNodes[j].textContent || ''; }
+        label = label.replace(/\s+/g, ' ').trim() || (a.textContent || id).replace(/\s+/g, ' ').trim();
+        out.push({ id: id, label: label.slice(0, 90), num: num, top: top(target) });
+      }
+      if (out.length) return out;
+      var nodes = document.querySelectorAll('section[id]');
+      for (i = 0; i < nodes.length; i++) {
+        var n = nodes[i];
+        if (n.id === 'toc') continue;
+        var h = n.querySelector('h1,h2,h3');
+        var numEl = n.querySelector('.sec-num');
+        out.push({ id: n.id,
+                   label: (h ? h.textContent : n.id).replace(/\s+/g, ' ').trim().slice(0, 90),
+                   num: numEl ? numEl.textContent.replace(/\s+/g, ' ').trim().slice(0, 8) : '',
+                   top: top(n) });
+      }
+      return out;
+    }
+    var last = '', sends = 0, ready = false;
+    function send(){
+      if (sends > 40 || !ready) return;
+      var b = document.body;
+      if (!b) return;
+      var cs = window.getComputedStyle(b);
+      var height = Math.ceil(b.getBoundingClientRect().bottom + window.scrollY + (parseFloat(cs.marginBottom) || 0));
+      var msg = { type: 'hd-document', height: height, sections: sections() };
+      var key = JSON.stringify(msg);
+      if (key === last) return;
+      last = key;
+      sends += 1;
+      window.parent.postMessage(msg, '*');
+    }
+    function start(){
+      if (ready || servedReporter()) return;
+      ready = true;
+      root.setAttribute('data-page-reporter', 'template');
+      /* READY FIRST, then the report. A parent that starts listening for the report only once
+         ready has arrived would otherwise miss the first send, and the de-duplicated second one
+         (same height, same sections) would never repeat it. */
+      window.parent.postMessage({ type: 'hd-document-ready' }, '*');
+      send();
+      setTimeout(send, 250);
+      if (window.ResizeObserver) { new ResizeObserver(function(){ send(); }).observe(root); }
+    }
+    if (document.readyState === 'complete') start();
+    else window.addEventListener('load', start);
+  })();
+
+  /* ---- section nav ---- */
+  var nav = document.getElementById('sidenav');
+  if (nav) {
+    var buttons = [].slice.call(nav.querySelectorAll('button'));
+    var groups = [].slice.call(nav.querySelectorAll('.nav-group'));
+    var order = buttons.map(function(b){ return b.getAttribute('data-target'); });
+    var intersecting = {};
+    /* The rail keeps ONE part open: the one the reader is in. A rail that lists every section
+       of a forty-section document is taller than the screen. */
+    function openGroupOf(button){
+      if (!groups.length || !button) return;
+      var mine = button.closest ? button.closest('.nav-group') : null;
+      if (!mine) return;
+      groups.forEach(function(g){ g.classList.toggle('open', g === mine); });
+    }
+    /* An active entry inside a scrolled rail must be ON SCREEN, or the highlight is useless. */
+    function keepInView(button){
+      if (!button || nav.scrollHeight <= nav.clientHeight) return;
+      /* The rail is position:fixed, so it IS the offsetParent of its own buttons and
+         button.offsetTop is ALREADY relative to it. Subtracting nav.offsetTop (the fixed rail's
+         own offset, about half the viewport height because of top:50%) drove every coordinate
+         negative and snapped the rail to the top on every section change. Measured at 1440x900
+         on a 220-section page: nav.offsetTop 450, rail 1149px inside an 872px box, the active
+         entry left at 974px, off screen, with scrollTop 0. */
+      var top = button.offsetTop;
+      if (top < nav.scrollTop + 8) nav.scrollTop = Math.max(0, top - 8);
+      else if (top + button.offsetHeight > nav.scrollTop + nav.clientHeight - 8) {
+        nav.scrollTop = top + button.offsetHeight - nav.clientHeight + 8;
+      }
+    }
+    function setActive(id){
+      var current = null;
+      buttons.forEach(function(b){
+        var on = b.getAttribute('data-target') === id;
+        b.classList.toggle('active', on);
+        if (on) current = b;
+      });
+      openGroupOf(current);
+      keepInView(current);
+    }
+    var observer = new IntersectionObserver(function(entries){
+      entries.forEach(function(entry){ intersecting[entry.target.id] = entry.isIntersecting; });
+      for (var i = order.length - 1; i >= 0; i--) {
+        if (intersecting[order[i]]) { setActive(order[i]); return; }
+      }
+    }, { rootMargin: '-40% 0px -55% 0px' });
+    buttons.forEach(function(b){
+      var el = document.getElementById(b.getAttribute('data-target'));
+      if (el) observer.observe(el);
+      b.addEventListener('click', function(){
+        var t = document.getElementById(b.getAttribute('data-target'));
+        if (!t) return;
+        /* rAF-eased scroll: native smooth silently JUMPS under reduced-motion and some
+           browser builds. The animation must run every time. */
+        var start = window.pageYOffset;
+        var end = t.getBoundingClientRect().top + start - 14;
+        var dur = 480, t0 = null;
+        function ease(x){ return x < .5 ? 2*x*x : -1 + (4 - 2*x)*x; }
+        function step(ts){
+          if (!t0) t0 = ts;
+          var p = Math.min(1, (ts - t0) / dur);
+          window.scrollTo(0, start + (end - start) * ease(p));
+          if (p < 1) requestAnimationFrame(step);
+        }
+        requestAnimationFrame(step);
+      });
+    });
+    /* The nav must never sit on top of the reading column. The column width is draggable, so
+       the fit is measured rather than assumed, on load, on resize and after every drag. */
+    function fitNav(){
+      var wrap = document.querySelector('.wrap');
+      if (!wrap) return;
+      var right = wrap.getBoundingClientRect().right;
+      var needed = nav.scrollWidth || 190;
+      nav.classList.toggle('cramped', right + needed + 12 > window.innerWidth);
+    }
+    window.addEventListener('resize', fitNav);
+    document.addEventListener('hd:width', fitNav);
+    nav.classList.add('visible'); // visible from the very top - never scroll-gated
+    if (groups.length) groups[0].classList.add('open'); // a rail that opens closed is a rail of stubs
+    fitNav();
+  }
+
+  /* ---- width handles ---- */
+  (function(){
+    var grips = [].slice.call(document.querySelectorAll('.grip'));
+    if (!grips.length) return;
+    function bounds(){
+      var cs = getComputedStyle(root);
+      return {
+        min: parseInt(cs.getPropertyValue('--wrap-min'), 10) || 720,
+        max: parseInt(cs.getPropertyValue('--wrap-max'), 10) || 1600
+      };
+    }
+    function current(){
+      var wrap = document.querySelector('.wrap');
+      return wrap ? wrap.getBoundingClientRect().width : 1000;
+    }
+    function apply(px){
+      var b = bounds();
+      var w = Math.max(b.min, Math.min(b.max, Math.round(px)));
+      root.style.setProperty('--wrap-w', w + 'px');
+      try { localStorage.setItem('hd-width-' + KEY, String(w)); } catch (e) {}
+      document.dispatchEvent(new CustomEvent('hd:width'));
+    }
+    function reset(){
+      root.style.removeProperty('--wrap-w');
+      try { localStorage.removeItem('hd-width-' + KEY); } catch (e) {}
+      document.dispatchEvent(new CustomEvent('hd:width'));
+    }
+    try {
+      var savedWidth = parseInt(localStorage.getItem('hd-width-' + KEY), 10);
+      if (savedWidth) apply(savedWidth);
+    } catch (e) {}
+    grips.forEach(function(grip){
+      grip.addEventListener('pointerdown', function(ev){
+        ev.preventDefault();
+        grip.setPointerCapture(ev.pointerId);
+        grip.classList.add('dragging');
+        var startX = ev.clientX, startW = current();
+        function move(e){
+          var dx = e.clientX - startX;
+          /* dragging either edge outward widens: the left grip reads inverted */
+          apply(startW + (grip.classList.contains('l') ? -dx : dx) * 2);
+        }
+        function up(){
+          grip.classList.remove('dragging');
+          window.removeEventListener('pointermove', move);
+          window.removeEventListener('pointerup', up);
+        }
+        window.addEventListener('pointermove', move);
+        window.addEventListener('pointerup', up);
+      });
+      grip.addEventListener('dblclick', reset);
+      grip.addEventListener('keydown', function(e){
+        if (e.key === 'ArrowLeft')  { apply(current() - 40); e.preventDefault(); }
+        if (e.key === 'ArrowRight') { apply(current() + 40); e.preventDefault(); }
+        if (e.key === 'Home' || e.key === 'Escape') { reset(); e.preventDefault(); }
+      });
+    });
+  })();
+
+  /* ---- data tables: filter + sort ---- */
+  (function(){
+    function debounce(fn, ms){
+      var t; return function(){ var a = arguments, c = this; clearTimeout(t); t = setTimeout(function(){ fn.apply(c, a); }, ms); };
+    }
+    [].slice.call(document.querySelectorAll('table.dt')).forEach(function(table){
+      var body = table.tBodies[0];
+      if (!body) return;
+      var rows = [].slice.call(body.rows);
+      var wrap = table.closest('.dt-wrap') || table.parentNode;
+      var box = wrap.querySelector('.dt-filter');
+      var count = wrap.querySelector('.dt-count');
+      var total = rows.length;
+      function report(shown){
+        if (count) count.textContent = shown === total ? (total.toLocaleString() + ' rows') : (shown.toLocaleString() + ' of ' + total.toLocaleString() + ' rows');
+      }
+      report(total);
+      if (box) {
+        box.addEventListener('input', debounce(function(){
+          var q = box.value.trim().toLowerCase();
+          var shown = 0;
+          rows.forEach(function(r){
+            var hit = !q || r.textContent.toLowerCase().indexOf(q) !== -1;
+            r.classList.toggle('hide', !hit);
+            if (hit) shown++;
+          });
+          report(shown);
+        }, 140));
+      }
+      [].slice.call(table.tHead ? table.tHead.rows[0].cells : []).forEach(function(th, index){
+        var kind = th.getAttribute('data-sort');
+        if (!kind) return;
+        th.setAttribute('role', 'button');
+        th.setAttribute('tabindex', '0');
+        function activate(){
+          var asc = th.getAttribute('aria-sort') !== 'ascending';
+          [].slice.call(table.tHead.rows[0].cells).forEach(function(c){ c.removeAttribute('aria-sort'); });
+          th.setAttribute('aria-sort', asc ? 'ascending' : 'descending');
+          var sorted = rows.slice().sort(function(a, b){
+            var x = (a.cells[index] ? a.cells[index].textContent : '').trim();
+            var y = (b.cells[index] ? b.cells[index].textContent : '').trim();
+            if (kind === 'num') {
+              var nx = parseFloat(x.replace(/[^0-9.eE+-]/g, '')) || 0;
+              var ny = parseFloat(y.replace(/[^0-9.eE+-]/g, '')) || 0;
+              return asc ? nx - ny : ny - nx;
+            }
+            return asc ? x.localeCompare(y, undefined, {numeric:true}) : y.localeCompare(x, undefined, {numeric:true});
+          });
+          var frag = document.createDocumentFragment();
+          sorted.forEach(function(r){ frag.appendChild(r); });
+          body.appendChild(frag);
+        }
+        th.addEventListener('click', activate);
+        th.addEventListener('keydown', function(e){ if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); activate(); } });
+      });
+    });
+  })();
+
+  /* ---- premium tooltip: any element with data-tip ---- */
+  (function(){
+    var tip = document.getElementById('tip');
+    if (!tip) return;
+    var shownAt = 0;
+    function show(el, x, y){
+      tip.innerHTML = '<b>' + (el.getAttribute('data-tip') || '') + '</b>' +
+        (el.getAttribute('data-tip-value') ? '<span class="v">' + el.getAttribute('data-tip-value') + '</span>' : '');
+      tip.classList.add('on'); tip.setAttribute('aria-hidden', 'false'); shownAt = Date.now();
+      var r = tip.getBoundingClientRect();
+      var left = x + 14, top = y - r.height - 12;
+      if (left + r.width > window.innerWidth - 8) left = x - r.width - 14;
+      if (top < 8) top = y + 18;
+      tip.style.left = Math.max(8, left) + 'px';
+      tip.style.top = top + 'px';
+    }
+    function hide(){ tip.classList.remove('on'); tip.setAttribute('aria-hidden', 'true'); }
+    document.addEventListener('pointermove', function(e){
+      var el = e.target.closest && e.target.closest('[data-tip]');
+      if (el) show(el, e.clientX, e.clientY); else hide();
+    });
+    document.addEventListener('pointerdown', function(e){
+      var el = e.target.closest && e.target.closest('[data-tip]');
+      if (el && e.pointerType !== 'mouse') { show(el, e.clientX, e.clientY); setTimeout(hide, 2600); }
+    });
+    document.addEventListener('scroll', function(){ if (Date.now() - shownAt > 400) hide(); }, {passive:true});
+  })();
+})();
+</script>
+
+<script>
+(function(){
+  if (!/^(localhost|127\.0\.0\.1)$/.test(location.hostname)) return;
+  if (new URLSearchParams(location.search).has('static')) return;
+  var current = null;
+  function check(){
+    if (document.hidden) return;
+    fetch(location.pathname + location.search, { cache: 'no-store' })
+      .then(function(r){ if (!r.ok) throw new Error('poll ' + r.status); return r.text(); })
+      .then(function(t){
+        if (current === null) { current = t; return; }
+        if (t !== current) {
+          try { sessionStorage.setItem('hd-reload-scroll', String(window.scrollY)); } catch (e) {}
+          location.reload();
+        }
+      })
+      .catch(function(){ /* server gone or transient - keep trying quietly */ });
+  }
+  try {
+    var saved = sessionStorage.getItem('hd-reload-scroll');
+    if (saved !== null) {
+      sessionStorage.removeItem('hd-reload-scroll');
+      window.scrollTo(0, parseInt(saved, 10) || 0);
+    }
+  } catch (e) {}
+  document.addEventListener('visibilitychange', function(){ if (!document.hidden) check(); });
+  setInterval(check, 2000);
+  check();
+})();
+</script>
+<script>
+(function(){
+  /* the picture: a lane-and-column flow map, laid out from the figure's own JSON */
+  (function(){
+    var NS = 'http://www.w3.org/2000/svg';
+    /* Every number below has a reason, and the reasons come from the engines that solved this
+       first. Read from the tools themselves (`d2 layout dagre`, `d2 layout elk`) and from their
+       published references:
+         - a box is WIDENED to its label and text wraps at a MEASURED width, never a character
+           count: mermaid's minNodeWidth (120) and wrappingWidth (120).
+         - edges keep their own clearance from nodes and run in the channel between layers:
+           ELK's spacing.edgeNode and layered.spacing.edgeNodeBetweenLayers (default 40), beside
+           dagre's edgesep (default 20) and nodesep (default 60).
+         - a container's own label reserves padding at its border before children are placed:
+           ELK's padding (left=50) and nodeLabels.padding.
+       The character-count wrap this replaced fitted the gallery's demo with 4.7 user units to
+       spare and put a 20-character program name 8.8px outside its box the first time a figure
+       used a real one. A count of characters is not a width, and never was. */
+    var PAD = 10, GUTTER_MIN = 40, GUTTER_TEXT_GAP = 16, LANE_LABEL_X = 12;
+    /* 24, not 10: a mark tag is pinned 11px above its box, so a narrower gap puts the tag
+       of one cell inside the box of the cell above it. Seen on a repaired figure, one pixel
+       in. */
+    var LANE_GAP = 22, LANE_PAD_Y = 11, CELL_GAP = 24;
+    var NODE_W_WIDE = 112, NODE_W_TIGHT = 96, NODE_W_MAX = 196;
+    var COL_GAP_WIDE = 30, COL_GAP_TIGHT = 22;
+    var INNER_PAD_X = 9, PAD_TOP = 9, PAD_BOTTOM = 8;
+    var LABEL_SIZE = 11.5, LABEL_LINE = 13, LABEL_MAX_LINES = 3;
+    var NOTE_SIZE = 9.5, NOTE_LINE = 11, NOTE_MAX_LINES = 2, NOTE_GAP = 3;
+    var LANE_LABEL_SIZE = 11, LANE_LABEL_SPACING = 1.1;
+    var GUTTER_MAX_SHARE = 0.30;  /* past this the lane label goes ABOVE its band instead */
+    var STACK_BELOW = 560;        /* one column under a phone width, never a shrunken map */
+    var CLEAR = 2;                /* how close a connector may pass a box and still be clear */
+    var ELLIPSIS = String.fromCharCode(8230);
+
+    function el(name, attrs){
+      var made = document.createElementNS(NS, name);
+      for (var k in attrs) { if (attrs[k] !== null && attrs[k] !== undefined) made.setAttribute(k, attrs[k]); }
+      return made;
+    }
+    function words(text){
+      var parts = String(text).split(' '), out = [];
+      for (var i = 0; i < parts.length; i++) { if (parts[i]) out.push(parts[i]); }
+      return out;
+    }
+    /* One hidden text element does every measurement, in the figure's own font at the figure's own
+       size. It is created before the viewBox exists, so a user unit is a CSS pixel here and the
+       numbers it returns are the numbers the layout is written in. */
+    function measurer(svg){
+      var probe = el('text', { x: -9999, y: -9999, visibility: 'hidden', 'aria-hidden': 'true' });
+      svg.appendChild(probe);
+      return {
+        width: function(text, size, weight, spacing){
+          probe.setAttribute('font-size', size);
+          probe.setAttribute('font-weight', weight || 400);
+          probe.setAttribute('letter-spacing', spacing || 0);
+          probe.textContent = String(text);
+          return probe.getComputedTextLength();
+        },
+        done: function(){ if (probe.parentNode) probe.parentNode.removeChild(probe); }
+      };
+    }
+    /* Wrap to a WIDTH. Returns the lines and the widest line, so the caller can grow the box to
+       the text rather than clip the text to the box. A single token wider than the limit comes
+       back whole and over-wide on purpose: growing the box is the next move, and truncation is
+       the one after that. */
+    function wrapTo(text, limit, maxLines, size, weight, spacing, measure){
+      var list = words(text), lines = [], line = '';
+      for (var i = 0; i < list.length; i++) {
+        var next = line ? line + ' ' + list[i] : list[i];
+        if (!line || measure.width(next, size, weight, spacing) <= limit) { line = next; }
+        else { lines.push(line); line = list[i]; }
+      }
+      if (line) lines.push(line);
+      if (!lines.length) lines = [''];
+      if (lines.length > maxLines) {
+        lines = lines.slice(0, maxLines);
+        lines[maxLines - 1] = lines[maxLines - 1] + ' ' + ELLIPSIS;
+      }
+      var widest = 0;
+      for (var j = 0; j < lines.length; j++) {
+        widest = Math.max(widest, measure.width(lines[j], size, weight, spacing));
+      }
+      return { lines: lines, widest: widest };
+    }
+    /* THE LAST RESORT, and only that: a token that will not fit the widest box the figure is
+       allowed to draw gets cut, with the whole string kept in a <title> so nothing is lost. */
+    function fitLine(text, limit, size, weight, spacing, measure){
+      if (measure.width(text, size, weight, spacing) <= limit) return { text: text, cut: false };
+      var cut = String(text);
+      while (cut.length > 1 && measure.width(cut + ELLIPSIS, size, weight, spacing) > limit) {
+        cut = cut.slice(0, -1);
+      }
+      return { text: cut + ELLIPSIS, cut: true };
+    }
+    /* A segment is clear of a box when it does not pass through its interior. Used by the
+       renderer to CHOOSE a route and by the lint to REFUSE one, so the two agree by construction
+       rather than by argument. Every route drawn here is orthogonal, so an overlap of both
+       extents is an intersection. */
+    function segmentHitsBox(x1, y1, x2, y2, b){
+      var loX = Math.min(x1, x2), hiX = Math.max(x1, x2);
+      var loY = Math.min(y1, y2), hiY = Math.max(y1, y2);
+      if (hiX <= b.x + CLEAR || loX >= b.x + b.w - CLEAR) return false;
+      if (hiY <= b.y + CLEAR || loY >= b.y + b.h - CLEAR) return false;
+      return true;
+    }
+    function routeIsClear(points, boxes){
+      for (var i = 1; i < points.length; i++) {
+        for (var k = 0; k < boxes.length; k++) {
+          if (segmentHitsBox(points[i - 1][0], points[i - 1][1], points[i][0], points[i][1], boxes[k])) return false;
+        }
+      }
+      return true;
+    }
+    function pathOf(points){
+      var d = 'M ' + points[0][0] + ' ' + points[0][1];
+      for (var i = 1; i < points.length; i++) { d += ' L ' + points[i][0] + ' ' + points[i][1]; }
+      return d;
+    }
+
+    function drawOne(figure, index){
+      var source = figure.querySelector('script.flow-data');
+      if (!source) return;
+      var data;
+      try { data = JSON.parse(source.textContent); } catch (e) { return; }
+      var lanes = data.lanes || [{ id: '', label: '' }];
+      var nodes = data.nodes || [];
+      if (!nodes.length) return;
+      var edges = data.edges || [];
+      var marks = data.marks || [];
+      var cols = data.cols || (Math.max.apply(null, nodes.map(function(n){ return n.col; })) + 1);
+      var laneIndex = {};
+      lanes.forEach(function(lane, i){ laneIndex[lane.id] = i; });
+      var laneOf = function(item){ return laneIndex[item.lane] || 0; };
+      var uid = 'flow' + index;
+
+      /* a redraw takes out its own drawing rather than stacking a second one under it */
+      var previous = figure.querySelector('svg');
+      if (previous) previous.parentNode.removeChild(previous);
+      var oldCap = figure.querySelector('.flow-cap');
+      if (oldCap) oldCap.parentNode.removeChild(oldCap);
+
+      var svg = el('svg', {
+        width: '100%', role: 'img', 'font-family': 'var(--font-body)',
+        'aria-labelledby': uid + '-t' + (data.description ? ' ' + uid + '-d' : '')
+      });
+      var title = el('title', { id: uid + '-t' });
+      title.textContent = data.title || figure.getAttribute('aria-label') || 'Diagram';
+      svg.appendChild(title);
+      if (data.description) {
+        var desc = el('desc', { id: uid + '-d' });
+        desc.textContent = data.description;
+        svg.appendChild(desc);
+      }
+      figure.insertBefore(svg, figure.firstChild);
+
+      var available = figure.getBoundingClientRect().width || 900;
+      var stacked = available < STACK_BELOW;
+      var measure = measurer(svg);
+
+      var defs = el('defs');
+      var marker = el('marker', {
+        id: uid + '-arrow', viewBox: '0 0 10 10', refX: 9, refY: 5,
+        markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse'
+      });
+      marker.appendChild(el('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--muted)' }));
+      defs.appendChild(marker);
+      svg.appendChild(defs);
+      var g = el('g');
+      svg.appendChild(g);
+
+      /* ---- size every box to its own text, then give every box the widest of them, because a
+              lane-and-column map is a GRID: one column wider than the rest stops being a
+              column. The cap is NODE_W_MAX; past it a line is cut and kept in a <title>. */
+      var wMin = stacked ? Math.max(160, available - 30 - PAD * 2) : (cols > 6 ? NODE_W_TIGHT : NODE_W_WIDE);
+      var wMax = stacked ? Math.max(wMin, available - 30 - PAD * 2) : NODE_W_MAX;
+      var needed = wMin;
+      nodes.forEach(function(item){
+        var room = wMax - INNER_PAD_X * 2;
+        var lab = wrapTo(item.label, room, LABEL_MAX_LINES, LABEL_SIZE, 600, 0, measure);
+        needed = Math.max(needed, lab.widest + INNER_PAD_X * 2);
+        if (item.note) {
+          var nte = wrapTo(item.note, room, NOTE_MAX_LINES, NOTE_SIZE, 700, 0.6, measure);
+          needed = Math.max(needed, nte.widest + INNER_PAD_X * 2);
+        }
+      });
+      var NODE_W = Math.max(wMin, Math.min(needed, wMax));
+      var inner = NODE_W - INNER_PAD_X * 2;
+
+      /* ---- the final wrap, at the final width, plus the truncation of last resort */
+      var laid = {}, tallest = 0;
+      nodes.forEach(function(item){
+        var lab = wrapTo(item.label, inner, LABEL_MAX_LINES, LABEL_SIZE, 600, 0, measure);
+        var labelCut = false;
+        lab.lines = lab.lines.map(function(line){
+          var fit = fitLine(line, inner, LABEL_SIZE, 600, 0, measure);
+          if (fit.cut) labelCut = true;
+          return fit.text;
+        });
+        var note = null, noteCut = false;
+        if (item.note) {
+          var nte = wrapTo(item.note, inner, NOTE_MAX_LINES, NOTE_SIZE, 700, 0.6, measure);
+          nte.lines = nte.lines.map(function(line){
+            var fit = fitLine(line, inner, NOTE_SIZE, 700, 0.6, measure);
+            if (fit.cut) noteCut = true;
+            return fit.text;
+          });
+          note = nte.lines;
+        }
+        var contentH = lab.lines.length * LABEL_LINE + (note ? NOTE_GAP + note.length * NOTE_LINE : 0);
+        var h = Math.max(58, PAD_TOP + contentH + PAD_BOTTOM);
+        laid[item.id] = { label: lab.lines, labelCut: labelCut, note: note, noteCut: noteCut, h: h, contentH: contentH };
+        tallest = Math.max(tallest, h);
+      });
+      var NODE_H = tallest;
+
+      /* ---- TWO NODES IN ONE CELL. A lane and a column can hold more than one thing, and the
+              first version of this renderer drew them at the same coordinates, one exactly on
+              top of the other. A real page shipped that way: two boxes in one lane at column 2,
+              and two more in another. A cell with n nodes is n slots tall, and the lane grows
+              to fit its deepest cell. */
+      var slot = {}, laneDepth = lanes.map(function(){ return 1; });
+      var cellCount = {};
+      nodes.forEach(function(item){
+        var key = laneOf(item) + ':' + item.col;
+        slot[item.id] = cellCount[key] || 0;
+        cellCount[key] = slot[item.id] + 1;
+        laneDepth[laneOf(item)] = Math.max(laneDepth[laneOf(item)], cellCount[key]);
+      });
+
+      /* ---- the gutter is the LONGEST LANE LABEL, not a number somebody typed once. Past
+              GUTTER_MAX_SHARE of the figure the label moves ABOVE its band instead, which is
+              also what one column gets. */
+      var laneLabelW = 0;
+      lanes.forEach(function(lane){
+        laneLabelW = Math.max(laneLabelW, measure.width(lane.label || '', LANE_LABEL_SIZE, 700, LANE_LABEL_SPACING));
+      });
+      var wantGutter = Math.max(GUTTER_MIN, LANE_LABEL_X + laneLabelW + GUTTER_TEXT_GAP);
+      var COL_GAP = cols > 6 ? COL_GAP_TIGHT : COL_GAP_WIDE;
+      var pitch = NODE_W + COL_GAP;
+      var provisional = wantGutter + cols * pitch + PAD;
+      var labelAbove = stacked || wantGutter > provisional * GUTTER_MAX_SHARE;
+      var GUTTER = labelAbove ? GUTTER_MIN : wantGutter;
+      var LANE_LABEL_H = labelAbove ? LANE_LABEL_SIZE + 7 : 0;
+      var laneHeight = laneDepth.map(function(depth){
+        return LANE_LABEL_H + LANE_PAD_Y * 2 + depth * NODE_H + (depth - 1) * CELL_GAP;
+      });
+      var laneTop = [], running = PAD;
+      laneHeight.forEach(function(h, i){ laneTop[i] = running; running += h + LANE_GAP; });
+
+      var width, height, boxes = {}, order = [];
+      if (stacked) {
+        /* ONE COLUMN. A map shrunk to a phone is a map nobody reads, and a map that scrolls
+           sideways is a map nobody scrolls. The nodes stack in reading order, each run of a
+           lane is announced once, and the connectors that are not neighbours run in the rail
+           on the left. */
+        order = nodes.slice().sort(function(a, b){
+          return (a.col - b.col) || (laneOf(a) - laneOf(b));
+        });
+        var RAIL = 22, STACK_GAP = 26;
+        width = Math.max(240, Math.round(available));
+        var y = PAD;
+        order.forEach(function(item, i){
+          var eyebrow = (i === 0 || order[i - 1].lane !== item.lane) ? LANE_LABEL_SIZE + 18 : 0;
+          y += eyebrow;
+          boxes[item.id] = {
+            x: RAIL + PAD, y: y, w: Math.max(120, width - RAIL - PAD * 2), h: laid[item.id].h,
+            eyebrow: eyebrow, lane: item.lane, col: item.col
+          };
+          y += laid[item.id].h + STACK_GAP;
+        });
+        height = y - STACK_GAP + PAD;
+      } else {
+        width = GUTTER + cols * pitch + PAD;
+        height = running - LANE_GAP + PAD;
+        nodes.forEach(function(item){
+          var li = laneOf(item);
+          boxes[item.id] = {
+            x: GUTTER + item.col * pitch,
+            y: laneTop[li] + LANE_LABEL_H + LANE_PAD_Y + slot[item.id] * (NODE_H + CELL_GAP)
+               + (NODE_H - laid[item.id].h) / 2,
+            w: NODE_W, h: laid[item.id].h, lane: item.lane, col: item.col
+          };
+        });
+      }
+      nodes.forEach(function(item){
+        var b = boxes[item.id];
+        b.cx = b.x + b.w / 2; b.cy = b.y + b.h / 2;
+      });
+      var boxList = nodes.map(function(item){ return boxes[item.id]; });
+
+      svg.setAttribute('viewBox', '0 0 ' + Math.round(width) + ' ' + Math.round(height));
+
+      /* ---- lane bands, under everything */
+      if (!stacked) {
+        lanes.forEach(function(lane, i){
+          g.appendChild(el('rect', {
+            'class': 'flow-lane', 'data-lane': lane.id, x: PAD, y: laneTop[i],
+            width: width - PAD * 2, height: laneHeight[i], rx: 12,
+            fill: i % 2 ? 'var(--panel-2)' : 'var(--panel)', stroke: 'var(--line)'
+          }));
+          var label = el('text', {
+            'class': 'flow-lane-label', 'data-lane': lane.id,
+            x: PAD + LANE_LABEL_X,
+            y: labelAbove ? laneTop[i] + LANE_LABEL_SIZE + 3 : laneTop[i] + laneHeight[i] / 2 + 4,
+            'font-size': LANE_LABEL_SIZE, 'letter-spacing': LANE_LABEL_SPACING,
+            'font-weight': 700, fill: 'var(--' + (lane.tone || 'muted') + ')'
+          });
+          label.textContent = lane.label;
+          g.appendChild(label);
+        });
+      }
+
+      /* ---- the connectors, routed in the CHANNELS: the gaps between columns and the gaps
+              between lanes. No segment may enter a box, and the renderer PROVES it rather than
+              assuming it: a simple route is drawn only when routeIsClear says it is clear. */
+      function channelRightOf(col){ return GUTTER + col * pitch + NODE_W + COL_GAP / 2; }
+      function channelLeftOf(col){ return GUTTER + col * pitch - COL_GAP / 2; }
+      function railBetween(from, to){
+        var a = laneOf(from), b = laneOf(to);
+        var gapAfter = a < b ? a : (a > b ? a - 1 : (a < lanes.length - 1 ? a : a - 1));
+        gapAfter = Math.max(0, Math.min(lanes.length - 2, gapAfter));
+        return laneTop[gapAfter] + laneHeight[gapAfter] + LANE_GAP / 2;
+      }
+      var byId = {};
+      nodes.forEach(function(item){ byId[item.id] = item; });
+      edges.forEach(function(edge, ei){
+        var a = boxes[edge.from], b = boxes[edge.to];
+        if (!a || !b) return;
+        var others = boxList.filter(function(x){ return x !== a && x !== b; });
+        var points = null;
+        if (stacked) {
+          var below = b.y >= a.y + a.h;
+          var simple = below
+            ? [[a.cx, a.y + a.h], [b.cx, b.y - 6]]
+            : [[a.cx, a.y], [b.cx, b.y + b.h + 6]];
+          if (routeIsClear(simple, others)) { points = simple; }
+          else {
+            var railX = 8 + (ei % 2) * 6;
+            points = [[a.x, a.cy], [railX, a.cy], [railX, b.cy], [b.x - 6, b.cy]];
+          }
+        } else {
+          var straight = Math.abs(a.cy - b.cy) < 1
+            ? [[a.x + a.w, a.cy], [b.x - 6, b.cy]]
+            : (Math.abs(a.cx - b.cx) < 1
+              ? [[a.cx, a.cy < b.cy ? a.y + a.h : a.y], [b.cx, a.cy < b.cy ? b.y - 6 : b.y + b.h + 6]]
+              : null);
+          if (straight && routeIsClear(straight, others)) { points = straight; }
+          else {
+            /* the jitter keeps two edges sharing one channel from drawing on top of each other,
+               which is what dagre's edgesep buys with its own 20 pixels */
+            var jitter = ((ei % 5) - 2) * 3.5;
+            var outX = channelRightOf(a.col) + jitter, inX = channelLeftOf(b.col) + jitter;
+            if (Math.abs(outX - inX) < 1) {
+              points = [[a.x + a.w, a.cy], [outX, a.cy], [outX, b.cy], [b.x - 6, b.cy]];
+            } else {
+              var railY = railBetween(byId[edge.from], byId[edge.to]) + jitter;
+              points = [
+                [a.x + a.w, a.cy], [outX, a.cy], [outX, railY],
+                [inX, railY], [inX, b.cy], [b.x - 6, b.cy]
+              ];
+            }
+          }
+        }
+        g.appendChild(el('path', {
+          'class': 'flow-edge', 'data-edge': edge.from + '-' + edge.to, d: pathOf(points),
+          fill: 'none', stroke: 'var(--' + (edge.tone || 'muted') + ')',
+          'stroke-width': 1.6, 'stroke-dasharray': edge.dashed ? '5 4' : null,
+          'marker-end': 'url(#' + uid + '-arrow)'
+        }));
+      });
+
+      /* ---- the boxes, over the connectors */
+      (stacked ? order : nodes).forEach(function(item){
+        var b = boxes[item.id], L = laid[item.id], tone = item.tone || 'acc';
+        if (stacked && b.eyebrow) {
+          var lane = lanes[laneOf(item)] || { label: '' };
+          var eye = el('text', {
+            'class': 'flow-lane-label', 'data-lane': item.lane, x: b.x, y: b.y - 18,
+            'font-size': LANE_LABEL_SIZE, 'letter-spacing': LANE_LABEL_SPACING,
+            'font-weight': 700, fill: 'var(--' + (lane.tone || 'muted') + ')'
+          });
+          eye.textContent = lane.label;
+          g.appendChild(eye);
+        }
+        g.appendChild(el('rect', {
+          'class': 'flow-node', 'data-node': item.id, x: b.x, y: b.y, width: b.w, height: b.h, rx: 10,
+          fill: 'var(--' + tone + '-soft, var(--panel))', stroke: 'var(--' + tone + ')', 'stroke-width': 1.4
+        }));
+        var top = b.y + (b.h - L.contentH) / 2 + LABEL_SIZE;
+        L.label.forEach(function(line, i){
+          var t = el('text', {
+            'class': 'flow-label', 'data-node': item.id, x: b.cx, y: top + i * LABEL_LINE,
+            'text-anchor': 'middle', 'font-size': LABEL_SIZE, 'font-weight': 600, fill: 'var(--ink)'
+          });
+          t.textContent = line;
+          if (L.labelCut) { var tt = el('title'); tt.textContent = item.label; t.appendChild(tt); }
+          g.appendChild(t);
+        });
+        if (L.note) {
+          var noteTop = top + L.label.length * LABEL_LINE + NOTE_GAP;
+          L.note.forEach(function(line, i){
+            var n = el('text', {
+              'class': 'flow-note', 'data-node': item.id, x: b.cx, y: noteTop + i * NOTE_LINE,
+              'text-anchor': 'middle', 'font-size': NOTE_SIZE, 'letter-spacing': 0.6,
+              'font-weight': 700, fill: 'var(--' + tone + '-ink, var(--muted))'
+            });
+            n.textContent = line;
+            if (L.noteCut) { var nt = el('title'); nt.textContent = item.note; n.appendChild(nt); }
+            g.appendChild(n);
+          });
+        }
+      });
+
+      /* ---- marks: a small tag pinned to a box, for the questions a stage carries */
+      marks.forEach(function(mark){
+        var b = boxes[mark.node];
+        if (!b) return;
+        var w = 12 + measure.width(mark.label, NOTE_SIZE, 700, 0);
+        g.appendChild(el('rect', {
+          'class': 'flow-mark', 'data-node': mark.node, x: b.cx - w / 2, y: b.y - 11,
+          width: w, height: 16, rx: 8, fill: 'var(--' + (mark.tone || 'ask') + ')'
+        }));
+        var t = el('text', {
+          'class': 'flow-mark-label', 'data-node': mark.node, x: b.cx, y: b.y + 1,
+          'text-anchor': 'middle', 'font-size': NOTE_SIZE, 'font-weight': 700, fill: 'var(--on-acc)'
+        });
+        t.textContent = mark.label;
+        g.appendChild(t);
+      });
+
+      measure.done();
+      figure.setAttribute('data-flow-layout', stacked ? 'stack' : 'lanes');
+      figure.style.setProperty('--flow-min', Math.min(Math.round(width), 1180) + 'px');
+      if (data.caption) {
+        var cap = document.createElement('figcaption');
+        cap.className = 'flow-cap';
+        cap.textContent = data.caption;
+        figure.appendChild(cap);
+      }
+    }
+
+    function drawAll(){
+      [].slice.call(document.querySelectorAll('figure.flow')).forEach(drawOne);
+    }
+    drawAll();
+
+    /* A phone that turns, or a window dragged narrow, crosses the one-column threshold. Redoing
+       the layout is cheap, and the alternative is a map that is right in the test and wrong in
+       the hand. Debounced, and a redraw takes out its own drawing rather than adding one. */
+    var redrawTimer = null, lastWidth = window.innerWidth;
+    window.addEventListener('resize', function(){
+      if (window.innerWidth === lastWidth) return;
+      lastWidth = window.innerWidth;
+      clearTimeout(redrawTimer);
+      redrawTimer = setTimeout(drawAll, 160);
+    });
+  })();
+})();
+</script>
+</body>
+</html>
