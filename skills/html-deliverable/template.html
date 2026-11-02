@@ -153,9 +153,9 @@
   a{color:var(--acc); text-decoration:none; overflow-wrap:break-word}
   a:hover{text-decoration:underline}
   p{margin:0 0 12px}
-  /* THE SELECTION IS THE INK, INVERTED (the owner, 2026-10-17, drop 1038: "when I highlight text
-     ... it literally is the same color blue as the background blue"). It was --acc-soft, the
-     callouts' and code's own ground, so a selection inside one measured 1.0:1. The ink reads on
+  /* THE SELECTION IS THE INK, INVERTED. A highlight inside a tinted callout was the callout's
+     own color: the selection was --acc-soft, the callouts' and code's own ground, so a selection
+     inside one measured 1.0:1. The ink reads on
      every block (the body text is written in it), so its inverse shows on every block, in every
      look and both modes. lint.py measures it (selection_contrast.py). -moz- is its own rule: in one
      list with ::selection, a browser that does not know it drops both. */

@@ -200,7 +200,9 @@ python build.py <input> <output.html> --surface report \
   and the data report's Source line once printed the input's file name, which says nothing to a
   reader and can say too much (an internal project name, a client's name, a draft number).
   `--source "The billing export, read on the first"` names the record the page was read from;
-  with no `--source` the Source line is removed, not shipped empty.
+  with no `--source` the Source line is removed, not shipped empty. The title is the one place a
+  file name can still reach the page: with no `# ` heading and no `--title` it is made from the
+  file name, and the builder prints a note saying so.
 - **A table hint binds wherever the author wrote it.** `[table: plain]` (or any `[table: ...]`
   hint) on the line directly above its table, or directly under a line of prose, still reaches
   that table instead of joining the paragraph as text. Fenced blocks are left exactly as written.
@@ -272,7 +274,9 @@ Checks that run on every pass, with no flag:
 - **Selected text has to read.** The page's own `::selection` is measured against every block its
   body text reads on, in Light and Dark mode (`selection_contrast.py`, WCAG contrast: 4.5 for the
   selected text, 3.0 for the selection against its block), and a selection that fails is refused.
-  The house rule, `::selection{background:var(--ink); color:var(--panel)}`, passes everywhere.
+  The house rule, `::selection{background:var(--ink); color:var(--panel)}`, passes everywhere. A
+  color the measure cannot parse (a named color beyond white and black, `oklch()`, a system color)
+  is a warning to check by eye, not a failure.
 - **A flow node's tone needs its pair.** The house tones are `acc`, `green`, `amber`, `red`,
   `violet` and `ask`, plus `muted` for a box that is off; the lint refuses a node tone whose
   `-soft` and `-ink` tokens the page does not define, which would render as an unstyled box.

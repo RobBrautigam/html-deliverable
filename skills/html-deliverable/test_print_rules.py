@@ -162,6 +162,45 @@ const { chromium } = require(process.argv[2]);
 """
 
 
+# The fold component remembers its open state per page. Printing opens it, and a browser may fire
+# beforeprint twice for one print: neither may leave the fold open afterwards or write "open" into
+# the reader's saved state. `toggle` is queued, so each step waits a moment before reading.
+FOLD_PRINT_JS = """
+const { chromium } = require(process.argv[2]);
+(async () => {
+  const browser = await chromium.launch();
+  const page = await browser.newPage();
+  await page.goto(process.argv[3]);
+  await page.waitForTimeout(200);
+  const saved = () => page.evaluate(() => Object.keys(localStorage)
+    .filter(k => k.startsWith('hd-fold-')).map(k => localStorage.getItem(k)));
+  const open = () => page.evaluate(() => document.querySelector('details.fold[data-fold]').open);
+  const before = await open();
+  await page.evaluate(() => { window.dispatchEvent(new Event('beforeprint')); });
+  await page.waitForTimeout(100);
+  await page.evaluate(() => { window.dispatchEvent(new Event('beforeprint')); });
+  await page.waitForTimeout(100);
+  const during = await open();
+  const savedDuring = await saved();
+  await page.evaluate(() => { window.dispatchEvent(new Event('afterprint')); });
+  await page.waitForTimeout(200);
+  const after = await open();
+  const savedAfter = await saved();
+  await browser.close();
+  console.log(JSON.stringify({ before, during, after, savedDuring, savedAfter }));
+})().catch(e => { console.error(String(e)); process.exit(3); });
+"""
+
+FOLD_MD = """# Folds
+
+A lead.
+
+## 1. The part
+
+<details class="fold" data-fold="one"><summary>The detail</summary><div class="fold-body">The argument.</div></details>
+"""
+
+
 def print_block(source: str) -> str:
     """The body of the first `@media print{...}`, brace-balanced. Slicing to the end of the file
     would pass for a rule moved OUT of the print block into the screen CSS below it, which is how
@@ -290,8 +329,14 @@ class TheSelectorIsNotTheComponent(unittest.TestCase):
             self.assertEqual([], [h for h in lint.components_without_assets(html) if "part-summary" in h])
 
     def test_a_strip_with_no_css_is_still_refused(self):
-        html = '<html><body><div class="stage-summary"><div class="ss-row">x</div></div></body></html>'
-        self.assertTrue([h for h in lint.components_without_assets(html) if "part-summary" in h])
+        for attribute in ('class="stage-summary"', 'class="stage-summary tight"',
+                          "class='x stage-summary'", 'class="a stage-summary b"'):
+            html = f'<html><body><div {attribute}><div class="ss-row">x</div></div></body></html>'
+            self.assertTrue([h for h in lint.components_without_assets(html) if "part-summary" in h], attribute)
+
+    def test_a_longer_class_name_is_not_the_strip(self):
+        html = '<html><body><div class="stage-summary-note">x</div></body></html>'
+        self.assertEqual([], [h for h in lint.components_without_assets(html) if "part-summary" in h])
 
 
 @unittest.skipUnless(BROWSER, "no Playwright reachable: the print styles cannot be measured")
@@ -324,6 +369,16 @@ class FoldsAndArrowsOnPaper(unittest.TestCase):
                        ' table.dt th[data-sort]::after{content:"\\2195"}'))
         self.assertEqual("hidden", got["detailsContent"], f"the twin's fold did not read closed: {got}")
         self.assertNotEqual("none", got["arrow"], f"the twin's arrow did not come back: {got}")
+
+    def test_a_remembered_fold_survives_a_double_beforeprint(self):
+        page = build_page(self.tmp, FOLD_MD, "folds.md", "--surface", "report")
+        self.assertIn("data-print-opened", page.read_text(encoding="utf-8"), "the fold script did not ship")
+        got = self.measure(FOLD_PRINT_JS, page)
+        self.assertFalse(got["before"], f"the fixture's fold must start closed: {got}")
+        self.assertTrue(got["during"], f"beforeprint did not open the fold: {got}")
+        self.assertFalse(got["after"], f"a second beforeprint left the fold open after printing: {got}")
+        self.assertNotIn("1", got["savedDuring"] + got["savedAfter"],
+                         f"printing wrote 'open' into the reader's saved fold state: {got}")
 
     def test_the_pdf_path_shows_the_method_note_with_no_javascript_at_all(self):
         got = self.measure(NO_JS_DRIVE_JS, self.page)

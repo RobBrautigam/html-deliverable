@@ -68,6 +68,18 @@ class PlantedCase(unittest.TestCase):
         bare = template().replace(NEW_RULE, "").replace(NEW_RULE.replace("::selection", "::-moz-selection"), "")
         self.assertEqual(lint.selection_findings(bare), [])
 
+    def test_a_color_the_measure_cannot_read_is_a_note_not_a_failure(self):
+        """`yellow`, `oklch()` and `Highlight` read fine in a browser; the checker parses only hex,
+        rgb(), hsl() and a few names, so it says it could not measure them instead of refusing."""
+        for color in ("yellow", "oklch(0.9 0.1 100)", "Highlight"):
+            with self.subTest(color=color):
+                page = template().replace(NEW_RULE, f"::selection{{background:{color}; color:black}}", 1)
+                self.assertEqual(lint.selection_findings(page), [])
+                self.assertTrue(any("could not be measured" in n for n in lint.selection_notes(page)))
+                failures, _, warnings = lint.check(page, money=False, allow_commands=True)
+                self.assertFalse(any("selection" in f for f in failures), failures)
+                self.assertTrue(any("could not be measured" in w for w in warnings), warnings)
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -13,7 +13,8 @@ What two more months of building real documents with this toolchain taught it.
   and sort arrows no longer print as stray glyphs. A callout, a summary strip, a figure, a stat
   card or a table row is never split across two pages; a heading never sits alone at a page foot;
   a table of twelve body rows or fewer prints on one page, while a longer one starts where it
-  falls. A `beforeprint` handler opens closed folds for browsers without `::details-content`.
+  falls. A `beforeprint` handler opens closed folds for browsers without `::details-content`, and
+  after printing closes only the ones it opened, even when a browser fires the event twice.
 - **Reduced motion is honored.** Under `prefers-reduced-motion: reduce` a page keeps its fades and
   color changes and drops the travel (the nav's slide, the tooltip's rise, the chevron's turn, the
   chart readout, the drag lift, the bar's growth).
@@ -21,7 +22,9 @@ What two more months of building real documents with this toolchain taught it.
   a tinted callout or a code block no longer vanishes into the block's own color.
 - **A page never names the local file it was built from.** The footer, the method note, the lede
   and the data report's Source line used to print the input's file name. `--source` now names
-  the record a page was read from; with no `--source` the Source line is removed.
+  the record a page was read from; with no `--source` the Source line is removed. The one place
+  a file name can still reach a page is the title, when the source has no `# ` heading and no
+  `--title`; the builder now prints a note when that happens.
 
 ### The builder
 
@@ -29,6 +32,8 @@ What two more months of building real documents with this toolchain taught it.
   still binds to that table instead of joining the paragraph as text.
 - A bare URL inside a code fence (backticks or tildes, any length) is left bare, so a paste-ready
   block keeps its addresses as written; an inline code span was already skipped.
+- The list cleanup reads a fence by its whole run too, so the list lines inside a ``` block held
+  in a four-backtick paste fence are left exactly as written.
 - `--verdict` and the verdict box render markdown `**bold**` as real bold.
 - A harvested Key links URL with `&` in its query string is decoded once before it is escaped, so
   it is never double-escaped.
@@ -38,17 +43,22 @@ What two more months of building real documents with this toolchain taught it.
 - **The wall list is read inside every `data:` URI**, base64 or percent encoded, and inside one
   nested in another, so a name hidden in an embedded SVG or a text export is caught.
 - **A selection that cannot be read is refused**, measured against every block the body text reads
-  on in Light and Dark mode (`selection_contrast.py`, WCAG contrast).
+  on in Light and Dark mode (`selection_contrast.py`, WCAG contrast). A selection color the
+  measure cannot parse (a named color such as `yellow`, `oklch()`, a system color) is a warning
+  to check by eye, not a failure.
 - **A flow node tone with no `-soft` and `-ink` pair is refused**: it rendered as an unstyled box.
   The example report carried one, and now uses a defined tone.
 - **Literal `**` inside a verdict or a callout is refused**, outside code.
-- **Motion with no reduced-motion block is a warning**, and so is a transition on `all`.
-- The assets proof reads the part-summary strip's class attribute, so the print block's selector
-  is not mistaken for the component in use.
+- **Motion with no reduced-motion block is a warning**, and so is a transition on `all`. A custom
+  property named like one (`--rail-transition`) is a token, not motion.
+- The assets proof reads the part-summary strip's class attribute, wherever the class sits in
+  the list, so the print block's selector is not mistaken for the component in use.
+- The `data:` URI scan reads each payload in place: on a 1.9 MB page carrying 3,000 small
+  images it took 2.57 seconds before and 0.05 after, reading the same 3,000 payloads.
 
 ### Tests
 
-- 466 tests, up from 350. Every new test file was run against the 1.0.0 code and fails there,
+- 474 tests, up from 350. Every new test file was run against the 1.0.0 code and fails there,
   so each one is known to measure its change.
 - The page contract tests that drive a page through Node now SKIP with a named reason when no Node
   `playwright` module is found, instead of erroring; point `PLAYWRIGHT_NODE_ROOT` at a

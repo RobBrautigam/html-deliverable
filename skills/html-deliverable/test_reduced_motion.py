@@ -142,6 +142,14 @@ class TheSecondRoundCases(unittest.TestCase):
     def test_not_no_preference_is_not_a_gate(self):
         self.assertTrue(moves("@media not (prefers-reduced-motion: no-preference){ #t{transition:transform .2s} }"))
 
+    def test_a_custom_property_named_for_a_transition_is_a_token_not_motion(self):
+        """A design token holds a value; nothing moves until a real declaration uses it."""
+        self.assertEqual(motion_warnings(":root{--rail-transition: transform .2s}"), [])
+        self.assertEqual(motion_warnings(":root{--fade-transition: all .2s}"), [])
+        self.assertEqual(motion_warnings(
+            "@keyframes rise{from{transform:translateY(8px)}to{transform:none}} :root{--hero-animation: rise .3s}"), [])
+        self.assertTrue(moves(":root{--t: transform .2s} #t{transition: var(--t), transform .2s}"))
+
 
 class TheHouseFilesPass(unittest.TestCase):
     """The template and the committed gallery carry the block, so a page built on them is quiet."""

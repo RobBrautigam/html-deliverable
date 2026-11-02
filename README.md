@@ -34,8 +34,9 @@ python skills/html-deliverable/lint.py out.html
 
 The lint prints `PASS` and the path. Open `out.html` in any browser: it is the report in the
 screenshot above with a plainer cover (the screenshot's build also passed the eyebrow, the lede,
-who it is for and from, and the three headline numbers as flags), and the right-side nav, the theme toggle, the
-sortable table and the workflow figure all work from one file, with nothing to install.
+who it is for and from, and the three headline numbers as flags). The right-side nav, the theme
+toggle, the sortable table and the workflow figure all work from that one file, with nothing to
+install.
 
 For your own notes, swap in your markdown, CSV or JSON, and add the render check once Playwright
 is installed:
@@ -95,6 +96,8 @@ The full list is in [CHANGELOG.md](CHANGELOG.md). The ones a reader notices:
 - **Reduced motion is honored**, and **selected text reads on every block**, including inside a
   tinted callout, where it used to vanish.
 - **A page never names the local file it was built from.** `--source` names the record instead.
+  The title is the one exception: with no `# ` heading and no `--title` it is made from the file
+  name, and the builder prints a note saying so.
 - **The lint reads inside `data:` URIs** for the wall list, refuses a text selection that cannot
   be read, refuses a workflow node with an undefined color, and warns on motion with no
   reduced-motion block.
@@ -191,7 +194,8 @@ python lint.py out.html --audience external --allow "Acme"
   block and the page must use color to mark meaning. Missing either half is the hit.
 - **Selected text has to read.** The page's own text selection is measured against every block
   its body text sits on, in Light and Dark, by WCAG contrast; a highlight that vanishes inside a
-  tinted callout is refused.
+  tinted callout is refused. A color the measure cannot parse (`yellow`, `oklch()`) is a warning
+  to check by eye.
 - **Hidden payloads are read too.** The wall list runs inside every base64 or percent-encoded
   `data:` URI, so a company name inside an embedded SVG is caught like one in the prose.
 - **Motion the reader cannot turn down** is named: an animation or transition with no
@@ -209,14 +213,14 @@ python lint.py out.html --audience external --allow "Acme"
 python -m pytest skills/html-deliverable
 ```
 
-**466 tests.** They cover the builder, the lint, the design system, the diagram engines, the
-figure gates, the large-document rules, the print rules and the page contract. Fifty of them
+**474 tests.** They cover the builder, the lint, the design system, the diagram engines, the
+figure gates, the large-document rules, the print rules and the page contract. Fifty-one of them
 drive a headless browser: they click every filter, sort every table, drag the width handles, hover
 the chart crosshair, flip the theme, drive a page inside a frame, print real pages to PDF and read
-them back page by page, and measure the rendered geometry. Without Playwright those fifty SKIP
-with a named reason rather than passing quietly, and the other 416 still run.
+them back page by page, and measure the rendered geometry. Without Playwright those fifty-one SKIP
+with a named reason rather than passing quietly, and the other 423 still run.
 
-Thirty-two of the fifty drive the page through Node rather than Python. They find a Node
+Thirty-three of the fifty-one drive the page through Node rather than Python. They find a Node
 `playwright` module in the usual `node_modules` folders, or wherever `PLAYWRIGHT_NODE_ROOT`
 points, and SKIP with that instruction when there is none. The print tests also need `pypdf`
 (`pip install pypdf`) to read the printed pages back.
@@ -253,7 +257,7 @@ html-deliverable/
     ├── domcheck.js              ← duplicate ids and leaked source, from the parsed DOM
     ├── wall-list.txt            ← the names a delivered page may never carry
     ├── fixtures/                ← the inversion proofs: one file per rule, each breaking it
-    └── test_*.py                ← 466 tests
+    └── test_*.py                ← 474 tests
 ```
 
 ---
@@ -269,7 +273,7 @@ Three files carry everything you would want to change:
    component carries a raw hex value and a test enforces that.
 3. **`DESIGN.md`** is prose you own. When somebody corrects a document you produced, fold the
    correction into that file in the same session, add the component to `build_gallery.py`, rebuild
-   the gallery, and write the test. That loop is why the toolchain has 466 tests and not twelve.
+   the gallery, and write the test. That loop is why the toolchain has 474 tests and not twelve.
 
 A client build wears the client's own colors, which is one line overriding `--acc` on the page,
 never a change to the design system.

@@ -153,9 +153,9 @@
   a{color:var(--acc); text-decoration:none; overflow-wrap:break-word}
   a:hover{text-decoration:underline}
   p{margin:0 0 12px}
-  /* THE SELECTION IS THE INK, INVERTED (the owner, 2026-10-17, drop 1038: "when I highlight text
-     ... it literally is the same color blue as the background blue"). It was --acc-soft, the
-     callouts' and code's own ground, so a selection inside one measured 1.0:1. The ink reads on
+  /* THE SELECTION IS THE INK, INVERTED. A highlight inside a tinted callout was the callout's
+     own color: the selection was --acc-soft, the callouts' and code's own ground, so a selection
+     inside one measured 1.0:1. The ink reads on
      every block (the body text is written in it), so its inverse shows on every block, in every
      look and both modes. lint.py measures it (selection_contrast.py). -moz- is its own rule: in one
      list with ::selection, a browser that does not know it drops both. */
@@ -1190,17 +1190,35 @@
   (function(){
     var key0 = 'hd-fold-' + location.pathname.replace(/[^a-z0-9]+/gi,'-').slice(-60) + '-';
     var folds = [].slice.call(document.querySelectorAll('details.fold[data-fold]'));
+    if (!folds.length) return;
     folds.forEach(function(fold){
       var key = key0 + fold.getAttribute('data-fold');
       try { if (localStorage.getItem(key) === '1') fold.open = true; } catch (e) {}
       fold.addEventListener('toggle', function(){
+        /* Opening a fold for printing fires `toggle`, which this writer persists: without a
+           guard a print rewrites the reader's saved state to "everything open". The guard is a
+           mark ON THE FOLD, not a flag: `toggle` is QUEUED by the browser, so a flag set and
+           cleared inside the print handler is already clear when the event arrives. The
+           closing toggle is the one that clears the mark. */
+        if (fold.hasAttribute('data-print-opened')) {
+          if (!fold.open) fold.removeAttribute('data-print-opened');
+          return;
+        }
         try { localStorage.setItem(key, fold.open ? '1' : '0'); } catch (e) {}
       });
     });
     var opened = [];
     window.addEventListener('beforeprint', function(){
-      opened = folds.filter(function(f){ return !f.open; });
-      opened.forEach(function(f){ f.open = true; });
+      /* Per fold, never per print: a browser may fire beforeprint twice for one print (a marked
+         fold is skipped, so the second firing is a no-op), and a print whose afterprint never
+         comes must not disarm the next one: an unmarked closed fold is opened whatever an
+         earlier print left behind. */
+      folds.forEach(function(f){
+        if (f.open || f.hasAttribute('data-print-opened')) return;
+        f.setAttribute('data-print-opened', '');
+        f.open = true;
+        opened.push(f);
+      });
     });
     window.addEventListener('afterprint', function(){
       opened.forEach(function(f){ f.open = false; });
@@ -4199,17 +4217,35 @@ The plan
   (function(){
     var key0 = 'hd-fold-' + location.pathname.replace(/[^a-z0-9]+/gi,'-').slice(-60) + '-';
     var folds = [].slice.call(document.querySelectorAll('details.fold[data-fold]'));
+    if (!folds.length) return;
     folds.forEach(function(fold){
       var key = key0 + fold.getAttribute('data-fold');
       try { if (localStorage.getItem(key) === '1') fold.open = true; } catch (e) {}
       fold.addEventListener('toggle', function(){
+        /* Opening a fold for printing fires `toggle`, which this writer persists: without a
+           guard a print rewrites the reader's saved state to "everything open". The guard is a
+           mark ON THE FOLD, not a flag: `toggle` is QUEUED by the browser, so a flag set and
+           cleared inside the print handler is already clear when the event arrives. The
+           closing toggle is the one that clears the mark. */
+        if (fold.hasAttribute('data-print-opened')) {
+          if (!fold.open) fold.removeAttribute('data-print-opened');
+          return;
+        }
         try { localStorage.setItem(key, fold.open ? '1' : '0'); } catch (e) {}
       });
     });
     var opened = [];
     window.addEventListener('beforeprint', function(){
-      opened = folds.filter(function(f){ return !f.open; });
-      opened.forEach(function(f){ f.open = true; });
+      /* Per fold, never per print: a browser may fire beforeprint twice for one print (a marked
+         fold is skipped, so the second firing is a no-op), and a print whose afterprint never
+         comes must not disarm the next one: an unmarked closed fold is opened whatever an
+         earlier print left behind. */
+      folds.forEach(function(f){
+        if (f.open || f.hasAttribute('data-print-opened')) return;
+        f.setAttribute('data-print-opened', '');
+        f.open = true;
+        opened.push(f);
+      });
     });
     window.addEventListener('afterprint', function(){
       opened.forEach(function(f){ f.open = false; });

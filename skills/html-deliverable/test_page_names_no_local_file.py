@@ -12,6 +12,8 @@ it was read from when the author passes `--source`, and nothing when they do not
 
 from __future__ import annotations
 
+import contextlib
+import io
 import sys
 import tempfile
 import unittest
@@ -62,6 +64,27 @@ class NoLocalFileName(unittest.TestCase):
     def test_an_unfilled_source_line_is_removed_not_left_empty(self):
         page = build_from(DATA, ".csv", "--surface", "data-report")
         self.assertNotRegex(page, r"<span><b>Source</b>\s*</span>")
+
+    def test_a_title_made_from_the_file_name_is_said_out_loud(self):
+        """With no `# ` heading and no --title, the file name becomes the title: the one place it
+        still reaches a page, so the builder prints a note naming the two ways around it."""
+        untitled = PAGE.replace("# The pilot record\n", "")
+        for text, suffix in ((untitled, ".md"), (DATA, ".csv")):
+            with self.subTest(suffix=suffix), tempfile.TemporaryDirectory() as tmp:
+                source = Path(tmp) / f"{STEM}{suffix}"
+                source.write_text(text, encoding="utf-8")
+                err = io.StringIO()
+                with contextlib.redirect_stderr(err):
+                    self.assertEqual(build.main([str(source), str(Path(tmp) / "out.html")]), 0)
+                self.assertIn("title is made from the file name", err.getvalue())
+                self.assertIn("--title", err.getvalue())
+        with tempfile.TemporaryDirectory() as tmp:
+            source = Path(tmp) / f"{STEM}.md"
+            source.write_text(PAGE, encoding="utf-8")
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                build.main([str(source), str(Path(tmp) / "out.html")])
+            self.assertNotIn("file name", err.getvalue())
 
     def test_a_named_source_and_foot_still_print(self):
         page = build_from(DATA, ".csv", "--surface", "data-report",

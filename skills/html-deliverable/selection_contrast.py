@@ -5,9 +5,7 @@ template once shipped `::selection{background:var(--acc-soft)}`, and its callout
 code blocks are painted `var(--acc-soft)` too: a selection inside one was the block's own color, a
 contrast of exactly 1.0, and the highlighted text vanished.
 
-`lint.py` refuses a page whose own selection fails here. A server that hosts pages it did not build
-can use the same measure: `page_selection_readable` decides whether a stored page's selection reads,
-and `SELECTION_STYLE` is a style block to lay over the page only when it does not.
+`lint.py` refuses a page whose own selection fails here.
 
 THE MEASURE (WCAG 2.x relative luminance). Selected text on the selection: at least 4.5 (SC 1.4.3,
 body text). The selection against the block it sits on: at least 3.0 (SC 1.4.11, a state the reader
@@ -29,33 +27,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 
-# The served selection, per mode: (background, text). Light: near-black, the Dark mode panel, with
-# white. Dark: the Dark mode ink with the Dark mode ground.
-SELECTION: dict[str, tuple[str, str]] = {
-    "light": ("#1d1e20", "#ffffff"),
-    "dark": ("#f0f1f2", "#161719"),
-}
 TEXT_FLOOR = 4.5
 BLOCK_FLOOR = 3.0
-
-_DARK_ATTR = '[data-theme="dark"]'
-# (0,4,1) and (0,5,1): above a page's own `::selection` (0,0,1) and a scoped `.callout ::selection`
-# (0,1,1) whatever order the page writes its styles in, without `!important`. The dark rule beats
-# the light one. `::-moz-selection` is its own rule: in a selector list with `::selection`, a browser
-# that does not know it drops the whole list.
-_LIGHT_SCOPE = ":root:root:root:root"
-_DARK_SCOPE = ":root" + _DARK_ATTR * 4
-
-
-def selection_css() -> str:
-    out = []
-    for scope, (bg, fg) in ((_LIGHT_SCOPE, SELECTION["light"]), (_DARK_SCOPE, SELECTION["dark"])):
-        for pseudo in ("::selection", "::-moz-selection"):
-            out.append(f"{scope} {pseudo}{{background:{bg};color:{fg}}}")
-    return "".join(out)
-
-
-SELECTION_STYLE = f"<style data-selection>{selection_css()}</style>"
 
 # ---------------------------------------------------------------------------
 # Colors
@@ -346,8 +319,7 @@ class Report:
         return bool(self.rules) and not self.findings and not self.unmeasured
 
 
-def _palette(rules: list[tuple[str, str]], mode: str, root: dict[str, str],
-             overlay: dict[str, str] | None) -> dict[str, str]:
+def _palette(rules: list[tuple[str, str]], mode: str, root: dict[str, str]) -> dict[str, str]:
     applied: list[tuple[int, int, dict[str, str]]] = []
     for index, (prelude, body) in enumerate(rules):
         for sel in _split(prelude):
@@ -360,17 +332,11 @@ def _palette(rules: list[tuple[str, str]], mode: str, root: dict[str, str],
     palette: dict[str, str] = {}
     for _, _, decls in sorted(applied, key=lambda t: (t[0], t[1])):
         palette.update(decls)
-    if mode == "dark" and overlay:
-        palette.update({(k if k.startswith("--") else f"--{k}"): v for k, v in overlay.items()})
     return palette
 
 
-def page_report(html: str, dark_overlay: dict[str, str] | None = None) -> Report:
-    """Every selection rule of the page, measured on every reading block in every mode it has.
-
-    `dark_overlay` is the variables a server lays over the page's dark, if it lays any, names with
-    or without their dashes.
-    """
+def page_report(html: str) -> Report:
+    """Every selection rule of the page, measured on every reading block in every mode it has."""
     css = "".join(_COMMENT.sub(" ", m.group(1)) for m in _STYLE.finditer(html or ""))
     rules = _rules(css)
     root = _root_attrs(html or "")
@@ -392,7 +358,7 @@ def page_report(html: str, dark_overlay: dict[str, str] | None = None) -> Report
     kinds = [[s for s in selections if ("-moz-" in s[0].lower()) == moz] for moz in (False, True)]
 
     for mode in report.modes:
-        palette = _palette(rules, mode, root, dark_overlay)
+        palette = _palette(rules, mode, root)
         ground = _resolve("var(--bg)", palette, 0) or (
             (255, 255, 255, 1.0) if mode == "light" else (22, 23, 25, 1.0))
         ink = (_resolve("var(--ink)", palette, 0)
@@ -477,7 +443,3 @@ def _surfaces(rules: list[tuple[str, str]], mode: str, palette: dict[str, str], 
             continue  # a solid fill with its own light text (a grip, a filled chip), not a reading block
         seen.setdefault(hex_of(c), (sels[0][:60], c))
     return list(seen.values())
-
-
-def page_selection_readable(html: str, dark_overlay: dict[str, str] | None = None) -> bool:
-    return page_report(html, dark_overlay).readable

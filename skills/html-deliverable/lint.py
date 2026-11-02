@@ -207,19 +207,22 @@ DATA_URI_TEXT_TYPES = re.compile(
     re.I,
 )
 DATA_URI_NEST_LIMIT = 3
+DATA_URI_UNQUOTED_RE = re.compile(r"[^\s<>\"']*")
 
 
 def data_uri_payload(html: str, match: re.Match[str]) -> str:
     """The payload's raw text. A URI opened by a quote runs to the matching quote (an attribute
     value, or a CSS `url("...")`); one opened by a parenthesis runs to the closing one (a bare
     CSS `url(...)`); an unquoted attribute value runs to whitespace or the end of the tag."""
+    # Read in place from the match: slicing the rest of the file first copied the whole tail of
+    # the page once per URI, which on a page of many small images is quadratic.
     before = html[match.start() - 1] if match.start() else ""
-    rest = html[match.end() :]
+    start = match.end()
     stop = {'"': '"', "'": "'", "(": ")"}.get(before)
     if stop:
-        end = rest.find(stop)
-        return rest if end < 0 else rest[:end]
-    return re.match(r"[^\s<>\"']*", rest).group(0)
+        end = html.find(stop, start)
+        return html[start:] if end < 0 else html[start:end]
+    return DATA_URI_UNQUOTED_RE.match(html, start).group(0)
 
 
 def data_uri_where(html: str, index: int) -> str:
@@ -289,12 +292,13 @@ def data_uri_texts(html: str, depth: int = 0) -> list[tuple[int, int, str, str]]
     for match in DATA_URI_RE.finditer(html):
         # A payload with no base64 and no percent escape is plain text in the file, which the raw
         # and entity passes already read; reading it again counted a name twice.
-        if ";base64" not in (match.group("params") or "").lower() and "%" not in data_uri_payload(html, match):
+        payload = data_uri_payload(html, match)
+        if ";base64" not in (match.group("params") or "").lower() and "%" not in payload:
             continue
         text = data_uri_text(html, match)
         if not text:
             continue
-        end = match.end() + len(data_uri_payload(html, match))
+        end = match.end() + len(payload)
         where = data_uri_where(html, match.start())
         found.append((match.start(), end, where, text))
         if depth + 1 < DATA_URI_NEST_LIMIT:
@@ -495,13 +499,19 @@ def markdown_in_raw_html(html: str) -> list[str]:
 # "components: asks, flow, part-summary" and shipped with none of their CSS or JS: the flow
 # figure rendered as nothing at all. The build was fixed; this is the check that would have
 # caught it from the finished file, which is the only thing the reader ever sees.
-COMPONENT_ASSETS_EXPECTED: dict[str, tuple[str, str, str]] = {
+def class_attribute(name: str) -> re.Pattern[str]:
+    """The class NAME inside a class attribute, beside any other classes: `class="x stage-summary"`."""
+    return re.compile(r"""\bclass\s*=\s*(["'])[^"']*(?<![\w-])""" + re.escape(name) + r"""(?![\w-])[^"']*\1""", re.I)
+
+
+COMPONENT_ASSETS_EXPECTED: dict[str, tuple[str | re.Pattern[str], str, str]] = {
     # id: (a signature of its markup, of its CSS, of its JS - "" where it has none)
-    # A markup signature is the class ATTRIBUTE, never a bare class name: the template's print
-    # block names `.stage-summary` in a selector on every page, and a bare "stage-summary" read
-    # that as the component in use on pages that never used it.
+    # The strip's markup signature is the class ATTRIBUTE, never a bare class name: the template's
+    # print block names `.stage-summary` in a selector on every page, and a bare "stage-summary"
+    # read that as the component in use on pages that never used it. Read as a class among others,
+    # so `class="stage-summary tight"` is still the strip.
     "flow": ('class="flow-data"', "figure.flow{--flow-min", "script.flow-data"),
-    "part-summary": ('class="stage-summary"', ".stage-summary{", "data-fold"),
+    "part-summary": (class_attribute("stage-summary"), ".stage-summary{", "data-fold"),
     "asks": ('class="asks"', ".asks{", ""),
     "timeline": ('class="tl"', ".tl-scale{", ""),
     "grouped-bar": ("data-gbar", ".gbar{", "data-gbar"),
@@ -587,7 +597,7 @@ def components_without_assets(html: str) -> list[str]:
     """A component in the markup whose CSS or JS is not in the same file."""
     hits: list[str] = []
     for cid, (markup, css, js) in COMPONENT_ASSETS_EXPECTED.items():
-        if markup not in html:
+        if not (markup.search(html) if isinstance(markup, re.Pattern) else markup in html):
             continue
         missing = []
         if css and css not in html:
@@ -1035,8 +1045,8 @@ MOVING_PROPERTIES = {
 CSS_WIDE_KEYWORDS = {"none", "inherit", "initial", "unset", "revert", "revert-layer"}
 TIME_RE = re.compile(r"^-?[\d.]+m?s$", re.I)
 EASING_RE = re.compile(r"^(?:ease(?:-in|-out|-in-out)?|linear|step-start|step-end|allow-discrete|normal)$", re.I)
-TRANSITION_DECL_RE = re.compile(r"(?<![\w])(?:-(?:webkit|moz|ms|o)-)?transition(-property)?\s*:\s*([^;{}]*)", re.I)
-ANIMATION_DECL_RE = re.compile(r"(?<![\w])(?:-(?:webkit|moz|ms|o)-)?animation(?:-name)?\s*:\s*([^;{}]*)", re.I)
+TRANSITION_DECL_RE = re.compile(r"(?<![\w-])(?:-(?:webkit|moz|ms|o)-)?transition(-property)?\s*:\s*([^;{}]*)", re.I)
+ANIMATION_DECL_RE = re.compile(r"(?<![\w-])(?:-(?:webkit|moz|ms|o)-)?animation(?:-name)?\s*:\s*([^;{}]*)", re.I)
 KEYFRAMES_RE = re.compile(r"@keyframes\s+([\w-]+)\s*\{", re.I)
 REDUCED_MOTION_RE = re.compile(r"@media[^{]*prefers-reduced-motion\s*(?::\s*reduce\s*)?\)", re.I)
 NO_PREFERENCE_RE = re.compile(r"@media(?![^{]*\bnot\b)[^{]*prefers-reduced-motion\s*:\s*no-preference", re.I)
@@ -1061,8 +1071,17 @@ def selection_findings(html: str) -> list[str]:
     ]
     if len(report.findings) > 6:
         out.append(f"the text selection fails on {len(report.findings) - 6} more blocks")
-    out += [f"the text selection cannot be measured: {u}" for u in report.unmeasured]
     return out
+
+
+def selection_notes(html: str) -> list[str]:
+    """A warning per selection color the measure cannot read (a named color beyond white and
+    black, `oklch()`, `color-mix()`, a system color). Not a failure: a selection the checker cannot
+    parse is not a selection that fails, so it is named for a look by eye instead."""
+    report = selection_contrast.page_report(html)
+    if not report.rules:
+        return []
+    return [f"the text selection could not be measured, check it by eye: {u}" for u in report.unmeasured]
 
 
 def page_css(html: str) -> list[tuple[int, str]]:
@@ -1217,6 +1236,7 @@ def check(
     # invisible. Measured in every look and mode the page has; a page with no selection rule of
     # its own keeps the browser's and is not failed.
     failures += selection_findings(html)
+    warnings += selection_notes(html)
     if not re.search(r'<meta\s+name="description"\s+content="[^"]+"', html, re.I):
         warnings.append("no <meta name=\"description\">: the builder writes one from the lede")
 

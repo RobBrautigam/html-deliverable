@@ -3,12 +3,12 @@
 
     python -m pytest skills/html-deliverable/test_links_ampersand.py
 
-A page once carried a statute link in its Key links table as `...?App_mode=Display_Statute&amp;URL=...`:
+A page once carried a link in its Key links table as `...?mode=show&amp;section=...`:
 the harvest read the address out of the rendered page, where Markdown had already written `&` as
 `&amp;`, and the table escaped it a second time (`&amp;amp;`). A browser decodes an attribute's
 character references once (HTML Living Standard, 13.2.5.36, the attribute value double-quoted
 state), so the link carried a literal `&amp;`, and the URL Standard splits a query on `&` alone
-(5.1, application/x-www-form-urlencoded parsing), so the server read a parameter named `amp;URL`.
+(5.1, application/x-www-form-urlencoded parsing), so the server read a parameter named `amp;section`.
 
 The fix decodes each harvested address once, where it is read, so the table holds the real URL
 and writes it with one escape, the way a `--link` URL (which arrives raw) always was.
@@ -27,8 +27,8 @@ sys.path.insert(0, str(HERE))
 
 import build  # noqa: E402
 
-STATUTE = "https://example.com/statutes/index.cfm?App_mode=Display_Statute&URL=0600-0699/0605/0605.html"
-CARD = "https://example.org/board?tab=decisions&detail=00000000-0000-4000-8000-000000000001"
+RULES = "https://example.com/rules/index.cfm?mode=show&section=12-04"
+ORDER = "https://example.org/orders?view=list&item=42"
 
 SOURCE = f"""# A page with two query-string links
 
@@ -36,8 +36,8 @@ A lead paragraph.
 
 ## 1. The section
 
-- The statute is at {STATUTE} .
-- The card is at {CARD} .
+- The rules page is at {RULES} .
+- The order is at {ORDER} .
 """
 
 
@@ -126,10 +126,10 @@ class TheBuiltTable(unittest.TestCase):
         self.assertNotIn("&amp;amp;", self.page)
 
     def test_every_href_decodes_to_the_real_url(self):
-        self.assertEqual([STATUTE, CARD], self.table.hrefs)
+        self.assertEqual([RULES, ORDER], self.table.hrefs)
 
     def test_the_visible_address_is_the_real_url(self):
-        self.assertEqual([STATUTE, CARD], self.table.texts)
+        self.assertEqual([RULES, ORDER], self.table.texts)
 
 
 if __name__ == "__main__":

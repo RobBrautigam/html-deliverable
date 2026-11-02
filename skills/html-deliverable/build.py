@@ -142,6 +142,14 @@ def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8-sig")
 
 
+def title_from_file_name(source: Path) -> str:
+    """The last resort, when the source has no `# ` heading and no --title was passed. The file
+    name then reaches the page as its title, so the builder says so instead of doing it quietly."""
+    print(f"build.py: note: the page title is made from the file name ({source.name}); "
+          "pass --title, or start the source with a `# ` heading", file=sys.stderr)
+    return source.stem.replace("-", " ").replace("_", " ").title()
+
+
 def block(text: str, name: str) -> str:
     """Return the contents between <!-- name --> and <!-- /name -->."""
     match = re.search(rf"<!--\s*{re.escape(name)}\s*-->(.*?)<!--\s*/{re.escape(name)}\s*-->", text, re.S)
@@ -271,7 +279,11 @@ def demote_headings(html_text: str) -> str:
 
 
 LIST_MARKER_RE = re.compile(r"^(\s*)(?:[-*+]|\d+[.)])\s+\S")
-FENCE_RE = re.compile(r"^\s*(```|~~~)")
+# The whole run, not its first three marks: a four-backtick paste fence holding a ``` block is
+# closed only by four backticks, so the list lines inside the inner block are never reindented.
+# Leading space is allowed here (unlike FENCE_RUN_RE) so a fence written inside a bullet is left
+# as written too.
+FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
 
 
 # Up to three spaces: four make an indented code block, never a hint.
@@ -348,12 +360,14 @@ def normalize_lists(md_text: str) -> str:
     after_marker = False
     for line in md_text.split("\n"):
         fence_hit = FENCE_RE.match(line)
-        if fence_hit:
-            fence = None if fence and line.lstrip().startswith(fence) else (fence or fence_hit.group(1))
+        if fence is None and fence_hit:
+            fence = fence_hit.group(1)
             out.append(line)
             after_marker = False
             continue
         if fence is not None:
+            if line.strip() == fence:
+                fence = None
             out.append(line)
             continue
         marker = LIST_MARKER_RE.match(line)
@@ -1333,7 +1347,7 @@ def harvest_links(content_html: str, given: list[str]) -> list[tuple[str, str]]:
             links.append((label.strip(), url))
     # A harvested address is read out of rendered HTML, where `&` is already `&amp;`; decode it
     # once so the row holds the real URL and links_section escapes it once, like a --link URL
-    # (a statute link once reached the table as `&amp;amp;`, and its server read the wrong field).
+    # (a link once reached the table as `&amp;amp;`, and its server read the wrong field).
     # Only a reference closed by `;` is decoded: a browser leaves `&region` or `&copy=` in an
     # attribute as it is, and html.unescape alone would not (a code review finding).
     for url in (ATTR_REF_RE.sub(lambda m: html.unescape(m.group(0)), u) for u in HREF_RE.findall(content_html)):
@@ -1977,7 +1991,7 @@ def main(argv: list[str] | None = None) -> int:
         title, sections = markdown_to_sections(
             read_text(source), used_components, store_prefix(destination), numbered=not args.unnumbered
         )
-        title = args.title or title or source.stem.replace("-", " ").title()
+        title = args.title or title or title_from_file_name(source)
         nav_pairs = [
             {"id": s["id"], "label": s["label"], "num": s["num"], "kind": s["kind"], "lead": s.get("lead", "")}
             for s in sections
@@ -2002,7 +2016,7 @@ def main(argv: list[str] | None = None) -> int:
         headers, rows = load_rows(source)
         numeric = numeric_columns(headers, rows)
         kinds = classify(headers, rows, numeric)
-        title = args.title or source.stem.replace("-", " ").replace("_", " ").title()
+        title = args.title or title_from_file_name(source)
 
         chart_index = None
         if args.chart_col and args.chart_col in headers:

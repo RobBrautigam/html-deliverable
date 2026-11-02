@@ -211,17 +211,35 @@ COMPONENTS: list[Component] = [
   (function(){
     var key0 = 'hd-fold-' + location.pathname.replace(/[^a-z0-9]+/gi,'-').slice(-60) + '-';
     var folds = [].slice.call(document.querySelectorAll('details.fold[data-fold]'));
+    if (!folds.length) return;
     folds.forEach(function(fold){
       var key = key0 + fold.getAttribute('data-fold');
       try { if (localStorage.getItem(key) === '1') fold.open = true; } catch (e) {}
       fold.addEventListener('toggle', function(){
+        /* Opening a fold for printing fires `toggle`, which this writer persists: without a
+           guard a print rewrites the reader's saved state to "everything open". The guard is a
+           mark ON THE FOLD, not a flag: `toggle` is QUEUED by the browser, so a flag set and
+           cleared inside the print handler is already clear when the event arrives. The
+           closing toggle is the one that clears the mark. */
+        if (fold.hasAttribute('data-print-opened')) {
+          if (!fold.open) fold.removeAttribute('data-print-opened');
+          return;
+        }
         try { localStorage.setItem(key, fold.open ? '1' : '0'); } catch (e) {}
       });
     });
     var opened = [];
     window.addEventListener('beforeprint', function(){
-      opened = folds.filter(function(f){ return !f.open; });
-      opened.forEach(function(f){ f.open = true; });
+      /* Per fold, never per print: a browser may fire beforeprint twice for one print (a marked
+         fold is skipped, so the second firing is a no-op), and a print whose afterprint never
+         comes must not disarm the next one: an unmarked closed fold is opened whatever an
+         earlier print left behind. */
+      folds.forEach(function(f){
+        if (f.open || f.hasAttribute('data-print-opened')) return;
+        f.setAttribute('data-print-opened', '');
+        f.open = true;
+        opened.push(f);
+      });
     });
     window.addEventListener('afterprint', function(){
       opened.forEach(function(f){ f.open = false; });

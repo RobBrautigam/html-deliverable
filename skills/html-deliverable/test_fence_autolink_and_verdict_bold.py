@@ -57,8 +57,8 @@ The dashboard is at {SITE}/after for reference.
 """
 
 # A long bold lead, more than 80 characters between its asterisks.
-LONG_LEAD = 'Pay the designer ($900.00, due October 7), send the three drafts, then say "go on all five":'
-VERDICT = f"**{LONG_LEAD}** 822 threads leave the five Inboxes and 33 stay."
+LONG_LEAD = 'Approve the supplier invoice ($1,250.00, due June 3), send the three drafts, then say "go on all five":'
+VERDICT = f"**{LONG_LEAD}** 40 tickets move to the new queue and 6 stay."
 
 
 def build_page(text: str, *args: str) -> str:
@@ -108,6 +108,26 @@ class AutolinkSkipsCode(unittest.TestCase):
         self.assertEqual(text, build.autolink(text))
 
 
+class ListsSkipFencesWhole(unittest.TestCase):
+    """`normalize_lists` read a fence by its first three marks, so the ``` line inside a
+    four-backtick paste fence closed it, and the list lines after it were reindented: the reader
+    pasted something other than what was written. A code review found it; this was red first."""
+
+    INNER = "Paste this:\n```\n- One\n  - Nested\n```\nThen send it.\n"
+
+    def test_a_four_backtick_fence_holding_a_list_is_left_as_written(self):
+        text = "````\n" + self.INNER + "````\n"
+        self.assertEqual(text, build.normalize_lists(text))
+
+    def test_a_tilde_fence_of_four_holds_the_same(self):
+        text = "~~~~\n" + self.INNER.replace("```", "~~~") + "~~~~\n"
+        self.assertEqual(text, build.normalize_lists(text))
+
+    def test_a_list_after_the_fence_is_still_normalized(self):
+        text = "````\n" + self.INNER + "````\n\n- A\n  - B\n"
+        self.assertTrue(build.normalize_lists(text).endswith("- A\n    - B\n"))
+
+
 class TheBuiltPage(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -143,7 +163,7 @@ class VerdictBold(unittest.TestCase):
         start = page.index('<div class="verdict">')
         box = page[start:page.index("</div>", start)]
         self.assertNotIn("**", box)
-        self.assertIn("<strong>Pay the designer", box)
+        self.assertIn("<strong>Approve the supplier", box)
 
     def test_masked_card_numbers_stay_as_written(self):
         # Two of them: without the hug on each side, the stars between them read as one bold run.
