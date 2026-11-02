@@ -274,6 +274,59 @@ LIST_MARKER_RE = re.compile(r"^(\s*)(?:[-*+]|\d+[.)])\s+\S")
 FENCE_RE = re.compile(r"^\s*(```|~~~)")
 
 
+# Up to three spaces: four make an indented code block, never a hint.
+TABLE_HINT_LINE_RE = re.compile(r"^ {0,3}\[table:\s*(?:plain|sortable)\]\s*$", re.I)
+# A fence the way the renderer reads one (Python-Markdown's `fenced_code`): opened by a run at
+# column 0, closed only by exactly the same run at column 0, so a four-backtick fence (a
+# paste-ready prompt) is not closed by a three-backtick line inside it, and a longer or indented
+# run inside a fence is content.
+FENCE_RUN_RE = re.compile(r"^(`{3,}|~{3,})(.*)$")
+DELIMITER_ROW_RE = re.compile(r"^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$")
+
+
+def _starts_table(lines: list[str], j: int) -> bool:
+    """A pipe-led row, or a pipe-less row whose next line is the table's delimiter row."""
+    if j >= len(lines):
+        return False
+    row = lines[j].lstrip()
+    if row.startswith("|"):
+        return True
+    # the delimiter row carries a pipe too: a bare "---" is a heading's underline or a rule
+    return ("|" in row and j + 1 < len(lines) and "|" in lines[j + 1]
+            and bool(DELIMITER_ROW_RE.match(lines[j + 1])))
+
+
+def separate_table_hints(md_text: str) -> str:
+    """Give a `[table: ...]` hint written directly above its table a blank line on each side.
+
+    With no blank line, Markdown reads the hint and every row of the table as ONE paragraph: the
+    table reaches the reader as pipes in a sentence and the lint measures one table fewer; and a
+    hint written directly under a line of prose joins that paragraph, so it reaches the reader as
+    text and its choice is lost. Fenced blocks are left exactly as written.
+    """
+    out: list[str] = []
+    fence: str | None = None
+    lines = md_text.split("\n")
+    for i, line in enumerate(lines):
+        run = FENCE_RUN_RE.match(line)
+        if fence is None and run:
+            fence = run.group(1)
+            out.append(line)
+            continue
+        if fence is not None:
+            if line.rstrip(" ") == fence:
+                fence = None
+            out.append(line)
+            continue
+        if fence is None and TABLE_HINT_LINE_RE.match(line) and _starts_table(lines, i + 1):
+            if out and out[-1].strip():
+                out.append("")
+            out += [line, ""]
+            continue
+        out.append(line)
+    return "\n".join(out)
+
+
 def normalize_lists(md_text: str) -> str:
     """Fix the two nested-list shapes that silently lose content before anything is rendered.
 
@@ -378,7 +431,7 @@ def markdown_to_sections(
         title = lines[0][2:].strip()
         lines = lines[1:]
 
-    body_md = autolink(normalize_lists("\n".join(lines)))
+    body_md = autolink(normalize_lists(separate_table_hints("\n".join(lines))))
     before = body_md
     body_md = slider_markers(body_md, prefix)
     if body_md != before:
@@ -1534,9 +1587,9 @@ def compose(
         surface_body = surface_body.replace("{{" + key + "}}", value)
     surface_body = PLACEHOLDER_RE.sub("", surface_body)
     # An eyebrow nobody filled is removed, not shipped as an empty line of reserved space, and
-    # so is a cover-meta entry (Prepared for, From, By) that nobody filled.
+    # so is a cover-meta entry (Prepared for, From, By, Source) that nobody filled.
     surface_body = re.sub(r'\s*<div class="eyebrow">\s*</div>\n?', "\n", surface_body)
-    surface_body = re.sub(r'[ \t]*<span><b>(?:Prepared for|From|By)</b>\s*</span>\n?', "", surface_body)
+    surface_body = re.sub(r'[ \t]*<span><b>(?:Prepared for|From|By|Source)</b>\s*</span>\n?', "", surface_body)
 
     css = f"  /* ---- surface: {surface} ---- */\n{surface_css}"
     if extra_css:
@@ -1906,9 +1959,12 @@ def main(argv: list[str] | None = None) -> int:
         "PREPARED_FOR": esc(args.prepared_for),
         "FROM": esc(args.prepared_from),
         "DATE": esc(args.date),
-        "SOURCE": esc(args.source or source.name),
-        "METHOD": esc(args.method or f"Built from {source.name} on {args.date}. Every figure is read from that file, none is estimated."),
-        "FOOT": esc(args.foot or f"Prepared {args.date}. Built from {source.name}."),
+        # A page names the record it was read from (`--source`), never the local file it was
+        # built from: a file name on a page a reader is handed says nothing to them and can say
+        # too much (an internal project name, a client's name, a draft number).
+        "SOURCE": esc(args.source),
+        "METHOD": esc(args.method or f"Every figure is read from the source data on {args.date}, none is estimated."),
+        "FOOT": esc(args.foot or f"Prepared {args.date}."),
         "VERDICT": verdict_box(args.verdict),
     }
 
@@ -1983,7 +2039,7 @@ def main(argv: list[str] | None = None) -> int:
         fields.update(
             {
                 "TITLE": esc(title),
-                "LEDE": esc(args.lede or f"Read straight from {source.name}: {len(rows):,} rows, {len(headers)} columns."),
+                "LEDE": esc(args.lede or f"Read straight from the source data: {len(rows):,} rows, {len(headers)} columns."),
                 "CONTENT": content,
                 "KPIS": stat_cards(args.stat, "kpi g") if args.stat else kpi_cards(headers, rows, numeric, kinds),
                 "TOC": "",
