@@ -4,6 +4,8 @@
 one command to check, and a mandatory lint that refuses the twenty-odd ways a generated document
 usually embarrasses you. A Claude Code skill, and a plain Python toolchain underneath it.
 
+**Version 1.1.0**, MIT licensed, Python 3.12 or newer. [What changed](CHANGELOG.md).
+
 <p align="center">
   <img src="examples/sample-report-classic-1440.png" alt="A built report in the classic look at 1440px" width="100%" />
 </p>
@@ -15,37 +17,87 @@ second without a design decision per document.
 
 ---
 
-## Install (the 30-second version)
+## Quick start (one minute, from a clean clone)
 
 ```bash
 git clone https://github.com/RobBrautigam/html-deliverable.git
 cd html-deliverable
 
-# Claude Code, globally
-cp -R skills/html-deliverable ~/.claude/skills/
-
 # the only dependency, and only for markdown input
 pip install markdown
+
+# build the example report, then check it
+python skills/html-deliverable/build.py examples/sample-report.md out.html \
+  --verdict "Revenue is 24 percent above plan; one decision is open."
+python skills/html-deliverable/lint.py out.html
+```
+
+The lint prints `PASS` and the path. Open `out.html` in any browser: it is the report in the
+screenshot above with a plainer cover (the screenshot's build also passed the eyebrow, the lede,
+who it is for and from, and the three headline numbers as flags), and the right-side nav, the theme toggle, the
+sortable table and the workflow figure all work from one file, with nothing to install.
+
+For your own notes, swap in your markdown, CSV or JSON, and add the render check once Playwright
+is installed:
+
+```bash
+python skills/html-deliverable/build.py notes.md report.html --surface report \
+  --title "The first quarter" --verdict "Revenue is above plan; one decision is open."
+python skills/html-deliverable/lint.py report.html --playwright --money
+```
+
+[`examples/sample-report.md`](examples/sample-report.md) is the example's source, and
+[`examples/sample-report.html`](examples/sample-report.html) is what the build produced with the
+flags its cover shows; it passes the lint at 1440 and 390 in both themes.
+
+## Install it as a Claude Code skill
+
+**As a plugin** (Claude Code's plugin marketplace, so updates arrive with one command):
+
+```
+/plugin marketplace add RobBrautigam/html-deliverable
+/plugin install html-deliverable@html-deliverable
+```
+
+**Or copy the skill folder** into your personal skills:
+
+```bash
+cp -R skills/html-deliverable ~/.claude/skills/
 ```
 
 Then ask any Claude Code session for an HTML report, a one-pager or a formatted document, and the
-skill fires on its own description. Or use the toolchain directly, with no agent involved:
+skill fires on its own description.
 
-```bash
-python skills/html-deliverable/build.py notes.md out.html --surface report \
-  --title "The first quarter" --verdict "Revenue is above plan; one decision is open."
-python skills/html-deliverable/lint.py out.html --playwright --money
+**Or send this to your agent**, and let it do the install and the first build:
+
 ```
-
-The example above is in this repository: [`examples/sample-report.md`](examples/sample-report.md)
-is the source, [`examples/sample-report.html`](examples/sample-report.html) is what the build
-produced, and it passes the lint at 1440 and 390 in both themes.
+Install the html-deliverable skill from https://github.com/RobBrautigam/html-deliverable:
+clone it, copy skills/html-deliverable into my personal skills folder, and run
+`pip install markdown`. Then read its SKILL.md and DESIGN.md, build examples/sample-report.md
+with build.py, run lint.py on the result, and tell me what the lint said.
+```
 
 **Requirements:** Python 3.12 or newer, the `markdown` package for markdown input (CSV and JSON
 need nothing), and, for the render check, Playwright (`pip install playwright && playwright
 install chromium`, or a Node `playwright` the lint can find). Two optional diagram engines, d2 and
 Graphviz, are only needed if a document uses `[diagram:]` blocks; the builder names the install
 command when one is missing.
+
+---
+
+## What's new in 1.1.0
+
+The full list is in [CHANGELOG.md](CHANGELOG.md). The ones a reader notices:
+
+- **Printing keeps what reads as one thing whole.** Folds print open, sort arrows stay off the
+  paper, a callout or a figure is never split across two pages, a heading never sits alone at a
+  page foot, and a short table prints on one page.
+- **Reduced motion is honored**, and **selected text reads on every block**, including inside a
+  tinted callout, where it used to vanish.
+- **A page never names the local file it was built from.** `--source` names the record instead.
+- **The lint reads inside `data:` URIs** for the wall list, refuses a text selection that cannot
+  be read, refuses a workflow node with an undefined color, and warns on motion with no
+  reduced-motion block.
 
 ---
 
@@ -137,11 +189,19 @@ python lint.py out.html --audience external --allow "Acme"
   figure's JSON block. Three ways an amount loses its sign, three arms, three fixtures.
 - **The flat page.** Over about 3,000 prose words, every long section must open with a summary
   block and the page must use color to mark meaning. Missing either half is the hit.
+- **Selected text has to read.** The page's own text selection is measured against every block
+  its body text sits on, in Light and Dark, by WCAG contrast; a highlight that vanishes inside a
+  tinted callout is refused.
+- **Hidden payloads are read too.** The wall list runs inside every base64 or percent-encoded
+  `data:` URI, so a company name inside an embedded SVG is caught like one in the prose.
+- **Motion the reader cannot turn down** is named: an animation or transition with no
+  `prefers-reduced-motion` block, or a transition on `all`, is a warning.
 - Plus: em dashes and mid dots (raw and entity), terminal commands in reader-facing prose, a
   missing Key links table, an external link that does not open in a new tab, a missing section nav
   or width handles, a dark default, an external script or font, a leftover `REPLACE`, a `<ul>`
-  inside a `<p>`, a nav taller than the viewport, a stranded heading, and a tab title that
-  disagrees with the page's own `<h1>`.
+  inside a `<p>`, a nav taller than the viewport, a stranded heading, a tab title that disagrees
+  with the page's own `<h1>`, literal `**` left in a verdict or a callout, and a workflow node
+  colored with a tone the page never defines.
 
 ### Tested, including in a real browser
 
@@ -149,12 +209,17 @@ python lint.py out.html --audience external --allow "Acme"
 python -m pytest skills/html-deliverable
 ```
 
-**348 tests.** They cover the builder, the lint, the design system, the diagram engines, the
-figure gates, the large-document rules and the page contract. Forty-one of them drive a headless
-browser: they click every filter, sort every table, drag the width handles, hover the chart
-crosshair, flip the theme, drive a page inside a frame, and measure the rendered geometry. Without
-Playwright those forty-one SKIP with a named reason rather than passing quietly, and the other 307
-still run.
+**466 tests.** They cover the builder, the lint, the design system, the diagram engines, the
+figure gates, the large-document rules, the print rules and the page contract. Fifty of them
+drive a headless browser: they click every filter, sort every table, drag the width handles, hover
+the chart crosshair, flip the theme, drive a page inside a frame, print real pages to PDF and read
+them back page by page, and measure the rendered geometry. Without Playwright those fifty SKIP
+with a named reason rather than passing quietly, and the other 416 still run.
+
+Thirty-two of the fifty drive the page through Node rather than Python. They find a Node
+`playwright` module in the usual `node_modules` folders, or wherever `PLAYWRIGHT_NODE_ROOT`
+points, and SKIP with that instruction when there is none. The print tests also need `pypdf`
+(`pip install pypdf`) to read the printed pages back.
 
 ---
 
@@ -163,8 +228,11 @@ still run.
 ```
 html-deliverable/
 ├── README.md                    ← you are here
+├── CHANGELOG.md                 ← what changed, version by version
 ├── LICENSE                      ← MIT
-├── .claude-plugin/plugin.json   ← the Claude Code plugin manifest
+├── .claude-plugin/
+│   ├── plugin.json              ← the Claude Code plugin manifest
+│   └── marketplace.json         ← lets `/plugin marketplace add` install it
 ├── examples/
 │   ├── sample-report.md         ← the source
 │   ├── sample-report.html       ← what the build produced, lint-clean
@@ -177,6 +245,7 @@ html-deliverable/
     ├── templates/               ← the four surface modules
     ├── build.py                 ← markdown, CSV or JSON in, one HTML file out
     ├── lint.py                  ← the pre-delivery gate
+    ├── selection_contrast.py    ← measures whether selected text reads on every block
     ├── build_gallery.py         ← the component catalogue, and the gallery it generates
     ├── serve.py                 ← local HTTP so the page live-reloads while you edit it
     ├── interactions.js          ← drives every interactive piece in a real browser
@@ -184,7 +253,7 @@ html-deliverable/
     ├── domcheck.js              ← duplicate ids and leaked source, from the parsed DOM
     ├── wall-list.txt            ← the names a delivered page may never carry
     ├── fixtures/                ← the inversion proofs: one file per rule, each breaking it
-    └── test_*.py                ← 348 tests
+    └── test_*.py                ← 466 tests
 ```
 
 ---
@@ -200,10 +269,23 @@ Three files carry everything you would want to change:
    component carries a raw hex value and a test enforces that.
 3. **`DESIGN.md`** is prose you own. When somebody corrects a document you produced, fold the
    correction into that file in the same session, add the component to `build_gallery.py`, rebuild
-   the gallery, and write the test. That loop is why the toolchain has 348 tests and not twelve.
+   the gallery, and write the test. That loop is why the toolchain has 466 tests and not twelve.
 
 A client build wears the client's own colors, which is one line overriding `--acc` on the page,
 never a change to the design system.
+
+---
+
+## Help and updates
+
+- **Something broke, or the lint refused a page you think is right?** Open an issue with the
+  lint's output and the smallest input that reproduces it:
+  [github.com/RobBrautigam/html-deliverable/issues](https://github.com/RobBrautigam/html-deliverable/issues).
+- **Staying current:** installed as a plugin, run `claude plugin update
+  html-deliverable@html-deliverable` in your shell, or choose **Update now** on the plugin in the
+  **Installed** tab of `/plugin` (auto-update is off by default for a marketplace like this one,
+  and the same tab turns it on). A copied folder updates with `git pull` and a fresh copy. Every
+  release is listed in [CHANGELOG.md](CHANGELOG.md).
 
 ---
 

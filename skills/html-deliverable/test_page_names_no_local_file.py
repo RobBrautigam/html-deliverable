@@ -44,16 +44,20 @@ def build_from(text: str, suffix: str, *args: str) -> str:
         return out.read_text(encoding="utf-8")
 
 
+# The old defaults' shape: "Built from <file>.md" or "Read straight from <file>.csv".
+NAMES_A_FILE = r"(?:Built|Read straight) from [\w.-]+\.(?:md|csv|tsv|json)\b"
+
+
 class NoLocalFileName(unittest.TestCase):
     def test_a_report_never_names_its_file(self):
         page = build_from(PAGE, ".md")
         self.assertNotIn(STEM, page)
-        self.assertNotIn("Built from", page)
+        self.assertNotRegex(page, NAMES_A_FILE)
 
     def test_a_data_report_never_names_its_file(self):
         page = build_from(DATA, ".csv", "--surface", "data-report")
         self.assertNotIn(STEM, page)
-        self.assertNotIn("Built from", page)
+        self.assertNotRegex(page, NAMES_A_FILE)
 
     def test_an_unfilled_source_line_is_removed_not_left_empty(self):
         page = build_from(DATA, ".csv", "--surface", "data-report")
