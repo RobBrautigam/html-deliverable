@@ -153,7 +153,14 @@
   a{color:var(--acc); text-decoration:none; overflow-wrap:break-word}
   a:hover{text-decoration:underline}
   p{margin:0 0 12px}
-  ::selection{background:var(--acc-soft); color:var(--acc-ink)}
+  /* THE SELECTION IS THE INK, INVERTED. A highlight inside a tinted callout was the callout's
+     own color: the selection was --acc-soft, the callouts' and code's own ground, so a selection
+     inside one measured 1.0:1. The ink reads on
+     every block (the body text is written in it), so its inverse shows on every block, in every
+     look and both modes. lint.py measures it (selection_contrast.py). -moz- is its own rule: in one
+     list with ::selection, a browser that does not know it drops both. */
+  ::selection{background:var(--ink); color:var(--panel)}
+  ::-moz-selection{background:var(--ink); color:var(--panel)}
   .eyebrow{font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--acc); font-weight:700; margin-bottom:14px}
   .lede{font-size:1.06rem; color:var(--muted)}
   header.cover{border-bottom:2px solid var(--acc); padding-bottom:26px; margin-bottom:26px}
@@ -415,6 +422,42 @@
     a{color:#000}
     table.dt tbody tr{content-visibility:visible}
     table.dt tbody tr.hide{display:table-row}
+    /* Paper cannot be clicked open: a method note printed as a closed fold hides its
+       paragraph, and every sort arrow prints as a stray glyph. Every fold prints open with
+       its marker gone; the script at the foot of the page also sets `open` before printing,
+       for a browser without ::details-content. */
+    details::details-content{content-visibility:visible}
+    details > summary{list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    table.dt th[data-sort]::after{content:none}
+    /* A box is never split across two pages. The section rule above cannot help once a
+       section is taller than a page, so every box that reads as one thing keeps itself
+       whole: callouts, summary strips, fact grids, comparisons, timelines, figures, stat
+       cards and table rows. Proved by inversion in test_print_rules.py. */
+    .callout,.warn,.verdict,.facts,.stage-summary,.cmp,.tl,figure.flow,figure.dgm,figure.chart,.stat,.kpi,tr{break-inside:avoid}
+    /* A heading stays with what follows it, and a SHORT table (twelve body rows or fewer,
+       about a third of a page) prints whole. A longer table is left free to split where it
+       falls: kept whole, it would jump to a fresh page and leave the one before it half
+       empty. Proved by inversion in test_print_rules.py, read back from the PDF. */
+    h2,h3,h4{break-after:avoid}
+    .dt-wrap:not(:has(tbody tr:nth-child(13))),table:not(:has(tbody tr:nth-child(13))){break-inside:avoid}
+  }
+
+  /* ============================================================
+     REDUCED MOTION (DESIGN.md, section 4). A reader
+     whose system asks for less motion keeps every fade and color
+     change and loses the travel: the rail's slide, the tooltip's rise,
+     the chevron's turn, the readout's rise, the drag lift, the bar's
+     growth. :root lifts the specificity so this outranks the component
+     library's own selectors. The rail's eased click scroll is script,
+     and stays: it is a short, reader-started jump.
+     ============================================================ */
+  @media (prefers-reduced-motion: reduce){
+    :root #sidenav, :root #tip, :root .chart-read, :root .rank li,
+    :root details.fold > summary::before, :root details.snip > summary::before,
+    :root .gtrack > span{
+      transition-property:opacity, color, background-color, border-color;
+    }
   }
 
   /* ---- gallery ---- */
@@ -1147,17 +1190,35 @@
   (function(){
     var key0 = 'hd-fold-' + location.pathname.replace(/[^a-z0-9]+/gi,'-').slice(-60) + '-';
     var folds = [].slice.call(document.querySelectorAll('details.fold[data-fold]'));
+    if (!folds.length) return;
     folds.forEach(function(fold){
       var key = key0 + fold.getAttribute('data-fold');
       try { if (localStorage.getItem(key) === '1') fold.open = true; } catch (e) {}
       fold.addEventListener('toggle', function(){
+        /* Opening a fold for printing fires `toggle`, which this writer persists: without a
+           guard a print rewrites the reader's saved state to "everything open". The guard is a
+           mark ON THE FOLD, not a flag: `toggle` is QUEUED by the browser, so a flag set and
+           cleared inside the print handler is already clear when the event arrives. The
+           closing toggle is the one that clears the mark. */
+        if (fold.hasAttribute('data-print-opened')) {
+          if (!fold.open) fold.removeAttribute('data-print-opened');
+          return;
+        }
         try { localStorage.setItem(key, fold.open ? '1' : '0'); } catch (e) {}
       });
     });
     var opened = [];
     window.addEventListener('beforeprint', function(){
-      opened = folds.filter(function(f){ return !f.open; });
-      opened.forEach(function(f){ f.open = true; });
+      /* Per fold, never per print: a browser may fire beforeprint twice for one print (a marked
+         fold is skipped, so the second firing is a no-op), and a print whose afterprint never
+         comes must not disarm the next one: an unmarked closed fold is opened whatever an
+         earlier print left behind. */
+      folds.forEach(function(f){
+        if (f.open || f.hasAttribute('data-print-opened')) return;
+        f.setAttribute('data-print-opened', '');
+        f.open = true;
+        opened.push(f);
+      });
     });
     window.addEventListener('afterprint', function(){
       opened.forEach(function(f){ f.open = false; });
@@ -1210,7 +1271,7 @@
   </section>
   <section id="c-flow">
     <div class="sec-num">The picture: a lane-and-column map of a whole path</div>
-    <p class="sub"><b>Every page that explains a workflow, a system, a pipeline or a path opens its explanation with this</b>: one map of the whole thing, before any prose, so the reader sees the shape before the detail. Boxes are real things with their real names; the lanes are who or what acts; the arrows are the path. It is inline SVG drawn on the tokens, so it works in both themes, and below 760px the figure scrolls sideways rather than shrinking the labels to nothing. Everything lives in the JSON block inside the figure, so a change is a data edit and there is no hand-placed coordinate to go stale. A workflow page with no picture is not done.</p>
+    <p class="sub"><b>Every page that explains a workflow, a system, a pipeline or a path opens its explanation with this</b>: one map of the whole thing, before any prose, so the reader sees the shape before the detail. Boxes are real things with their real names; the lanes are who or what acts; the arrows are the path. It is inline SVG drawn on the tokens, so it works in both themes, and below 760px the figure scrolls sideways rather than shrinking the labels to nothing. Everything lives in the JSON block inside the figure, so a change is a data edit and there is no hand-placed coordinate to go stale. A workflow page with no picture is not done. <b>A node's tone is one of acc, green, amber, red, violet and ask, or muted for a box that is off</b>: each of the six has the soft fill and the ink note a box is painted with, muted paints the plain panel on purpose, and any other tone filled the box with the panel color in silence, so the lint refuses it; a lane, an edge or a mark takes any house token.</p>
     <div class="demo">
 <figure class="flow" aria-label="How a buyer reply becomes a live link">
   <script type="application/json" class="flow-data">
@@ -1223,7 +1284,7 @@
     ],
     "nodes": [
       {"id": "send", "col": 0, "lane": "machine", "label": "The email goes out", "note": "LIVE", "tone": "green"},
-      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc-2"},
+      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc"},
       {"id": "draft", "col": 2, "lane": "machine", "label": "The offer drafts itself", "note": "LIVE", "tone": "green"},
       {"id": "send2", "col": 3, "lane": "us", "label": "We click send", "note": "the gate", "tone": "violet"},
       {"id": "pick", "col": 4, "lane": "buyer", "label": "They pick and pay", "note": "email only", "tone": "amber"},
@@ -1260,7 +1321,7 @@
     ],
     "nodes": [
       {"id": "send", "col": 0, "lane": "machine", "label": "The email goes out", "note": "LIVE", "tone": "green"},
-      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc-2"},
+      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc"},
       {"id": "draft", "col": 2, "lane": "machine", "label": "The offer drafts itself", "note": "LIVE", "tone": "green"},
       {"id": "send2", "col": 3, "lane": "us", "label": "We click send", "note": "the gate", "tone": "violet"},
       {"id": "pick", "col": 4, "lane": "buyer", "label": "They pick and pay", "note": "email only", "tone": "amber"},
@@ -3637,7 +3698,7 @@ The plan
   </section>
   <section id="c-print">
     <div class="sec-num">Print block</div>
-    <p class="sub">On every page, because these get printed and PDF'd. It hides the chrome, drops the shadows and the grid, releases the width cap, blackens links, and forces filtered and content-visibility rows back on so a printed table is complete.</p>
+    <p class="sub">On every page, because these get printed and PDF'd. It hides the chrome, drops the shadows and the grid, releases the width cap, blackens links, and forces filtered and content-visibility rows back on so a printed table is complete. Because paper cannot be clicked, it also prints every fold open with its marker gone and drops the sort arrows from table headers. And it keeps whole what reads as one thing: a box is never split across two pages, a heading never sits alone at a page foot, and a table of twelve rows or fewer prints on one page (a longer one splits where it falls).</p>
     <div class="demo live"><b>Already live on this page.</b> Print this page, or save it as a PDF, to see it.</div>
       <details class="snip">
         <summary>Copy the HTML</summary>
@@ -3650,8 +3711,33 @@ The plan
   a{color:#000}
   table.dt tbody tr{content-visibility:visible}
   table.dt tbody tr.hide{display:table-row}
+  details::details-content{content-visibility:visible}
+  details &gt; summary{list-style:none}
+  details &gt; summary::-webkit-details-marker{display:none}
+  table.dt th[data-sort]::after{content:none}
+  .callout,.warn,.verdict,.facts,.stage-summary,.cmp,.tl,figure.flow,figure.dgm,figure.chart,.stat,.kpi,tr{break-inside:avoid}
+  h2,h3,h4{break-after:avoid}
+  .dt-wrap:not(:has(tbody tr:nth-child(13))),table:not(:has(tbody tr:nth-child(13))){break-inside:avoid}
 }
-&lt;/style&gt;</code></pre>
+&lt;/style&gt;
+
+&lt;!-- ::details-content is Chrome 131 and later. This is the fallback every other browser needs:
+     it opens each closed fold before the page prints and closes it again afterwards. It skips
+     details[data-fold], which the fold component's own script already handles and persists. --&gt;
+&lt;script&gt;
+(function(){
+  var opened = [];
+  window.addEventListener('beforeprint', function(){
+    if (opened.length) return;
+    opened = [].slice.call(document.querySelectorAll('details:not([open]):not([data-fold])'));
+    opened.forEach(function(d){ d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function(){
+    opened.forEach(function(d){ d.removeAttribute('open'); });
+    opened = [];
+  });
+})();
+&lt;/script&gt;</code></pre>
       </details>
       <p class="sub note">No extra CSS or JavaScript: the base template already carries this one.</p>
   </section>
@@ -4070,6 +4156,25 @@ The plan
     });
     document.addEventListener('scroll', function(){ if (Date.now() - shownAt > 400) hide(); }, {passive:true});
   })();
+
+  /* ---- print: every closed fold opens before the page prints and closes again after ----
+     It is IDEMPOTENT, because Firefox and Safari can fire beforeprint more than once for one
+     print, and a second pass would capture an empty list and leave every fold open afterwards.
+     And it skips `details[data-fold]`, whose own script already opens those for printing AND
+     persists their open state on every toggle: opening them here would silently rewrite the
+     reader's saved state to "everything open". */
+  (function(){
+    var opened = [];
+    window.addEventListener('beforeprint', function(){
+      if (opened.length) return;
+      opened = [].slice.call(document.querySelectorAll('details:not([open]):not([data-fold])'));
+      opened.forEach(function(d){ d.setAttribute('open', ''); });
+    });
+    window.addEventListener('afterprint', function(){
+      opened.forEach(function(d){ d.removeAttribute('open'); });
+      opened = [];
+    });
+  })();
 })();
 </script>
 
@@ -4112,17 +4217,35 @@ The plan
   (function(){
     var key0 = 'hd-fold-' + location.pathname.replace(/[^a-z0-9]+/gi,'-').slice(-60) + '-';
     var folds = [].slice.call(document.querySelectorAll('details.fold[data-fold]'));
+    if (!folds.length) return;
     folds.forEach(function(fold){
       var key = key0 + fold.getAttribute('data-fold');
       try { if (localStorage.getItem(key) === '1') fold.open = true; } catch (e) {}
       fold.addEventListener('toggle', function(){
+        /* Opening a fold for printing fires `toggle`, which this writer persists: without a
+           guard a print rewrites the reader's saved state to "everything open". The guard is a
+           mark ON THE FOLD, not a flag: `toggle` is QUEUED by the browser, so a flag set and
+           cleared inside the print handler is already clear when the event arrives. The
+           closing toggle is the one that clears the mark. */
+        if (fold.hasAttribute('data-print-opened')) {
+          if (!fold.open) fold.removeAttribute('data-print-opened');
+          return;
+        }
         try { localStorage.setItem(key, fold.open ? '1' : '0'); } catch (e) {}
       });
     });
     var opened = [];
     window.addEventListener('beforeprint', function(){
-      opened = folds.filter(function(f){ return !f.open; });
-      opened.forEach(function(f){ f.open = true; });
+      /* Per fold, never per print: a browser may fire beforeprint twice for one print (a marked
+         fold is skipped, so the second firing is a no-op), and a print whose afterprint never
+         comes must not disarm the next one: an unmarked closed fold is opened whatever an
+         earlier print left behind. */
+      folds.forEach(function(f){
+        if (f.open || f.hasAttribute('data-print-opened')) return;
+        f.setAttribute('data-print-opened', '');
+        f.open = true;
+        opened.push(f);
+      });
     });
     window.addEventListener('afterprint', function(){
       opened.forEach(function(f){ f.open = false; });

@@ -50,6 +50,17 @@ def a_browser_is_reachable() -> bool:
     return any(r and (Path(r) / "playwright").is_dir() for r in lint.NODE_MODULE_ROOTS if r)
 
 
+def node_playwright_root() -> str:
+    """The folder holding a Node `playwright` module, for the tests that drive a page through
+    node. The Python package alone makes a browser reachable for the lint but not for them, so
+    they SKIP with a named reason here rather than fail on a StopIteration."""
+    for r in lint.NODE_MODULE_ROOTS:
+        if r and (Path(r) / "playwright").is_dir():
+            return r
+    raise unittest.SkipTest("no Node playwright module: these tests drive the page through node; "
+                            "set PLAYWRIGHT_NODE_ROOT to a node_modules folder that holds one")
+
+
 BROWSER = a_browser_is_reachable()
 
 SAMPLE_MD = """# A page with several destinations on one host
@@ -353,7 +364,7 @@ class RailKeepInViewTests(unittest.TestCase):
             page = build_page(tmp, "\n".join(lines), "tall.md", "--surface", "report")
             script = tmp / "drive.js"
             script.write_text(DRIVE_JS, encoding="utf-8")
-            root = next(r for r in lint.NODE_MODULE_ROOTS if r and (Path(r) / "playwright").is_dir())
+            root = node_playwright_root()
             result = subprocess.run(
                 ["node", str(script), str(Path(root) / "playwright"), page.resolve().as_uri()],
                 capture_output=True, text=True, timeout=180,
@@ -553,7 +564,7 @@ class FrameContractTests(unittest.TestCase):
         parent.write_text(PARENT_HTML.replace("__CHILD__", page.name), encoding="utf-8")
         script = self.tmp / "drive-frame.js"
         script.write_text(FRAME_DRIVE_JS, encoding="utf-8")
-        root = next(r for r in lint.NODE_MODULE_ROOTS if r and (Path(r) / "playwright").is_dir())
+        root = node_playwright_root()
         result = subprocess.run(
             ["node", str(script), str(Path(root) / "playwright"), parent.resolve().as_uri(),
              str(grow_to), send_theme],
@@ -612,7 +623,7 @@ class FrameContractTests(unittest.TestCase):
         parent.write_text(PARENT_HTML.replace("__CHILD__", page.name), encoding="utf-8")
         script = self.tmp / "drive-frame.js"
         script.write_text(FRAME_DRIVE_JS, encoding="utf-8")
-        root = next(r for r in lint.NODE_MODULE_ROOTS if r and (Path(r) / "playwright").is_dir())
+        root = node_playwright_root()
         result = subprocess.run(
             ["node", str(script), str(Path(root) / "playwright"), parent.resolve().as_uri(),
              "480", "light"],
@@ -628,7 +639,7 @@ class FrameContractTests(unittest.TestCase):
         page = build_page(self.tmp, SAMPLE_MD, "alone.md", "--surface", "report")
         script = self.tmp / "drive-alone.js"
         script.write_text(ALONE_DRIVE_JS, encoding="utf-8")
-        root = next(r for r in lint.NODE_MODULE_ROOTS if r and (Path(r) / "playwright").is_dir())
+        root = node_playwright_root()
         result = subprocess.run(
             ["node", str(script), str(Path(root) / "playwright"), page.resolve().as_uri()],
             capture_output=True, text=True, timeout=180,

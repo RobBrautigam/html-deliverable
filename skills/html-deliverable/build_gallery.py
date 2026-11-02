@@ -211,17 +211,35 @@ COMPONENTS: list[Component] = [
   (function(){
     var key0 = 'hd-fold-' + location.pathname.replace(/[^a-z0-9]+/gi,'-').slice(-60) + '-';
     var folds = [].slice.call(document.querySelectorAll('details.fold[data-fold]'));
+    if (!folds.length) return;
     folds.forEach(function(fold){
       var key = key0 + fold.getAttribute('data-fold');
       try { if (localStorage.getItem(key) === '1') fold.open = true; } catch (e) {}
       fold.addEventListener('toggle', function(){
+        /* Opening a fold for printing fires `toggle`, which this writer persists: without a
+           guard a print rewrites the reader's saved state to "everything open". The guard is a
+           mark ON THE FOLD, not a flag: `toggle` is QUEUED by the browser, so a flag set and
+           cleared inside the print handler is already clear when the event arrives. The
+           closing toggle is the one that clears the mark. */
+        if (fold.hasAttribute('data-print-opened')) {
+          if (!fold.open) fold.removeAttribute('data-print-opened');
+          return;
+        }
         try { localStorage.setItem(key, fold.open ? '1' : '0'); } catch (e) {}
       });
     });
     var opened = [];
     window.addEventListener('beforeprint', function(){
-      opened = folds.filter(function(f){ return !f.open; });
-      opened.forEach(function(f){ f.open = true; });
+      /* Per fold, never per print: a browser may fire beforeprint twice for one print (a marked
+         fold is skipped, so the second firing is a no-op), and a print whose afterprint never
+         comes must not disarm the next one: an unmarked closed fold is opened whatever an
+         earlier print left behind. */
+      folds.forEach(function(f){
+        if (f.open || f.hasAttribute('data-print-opened')) return;
+        f.setAttribute('data-print-opened', '');
+        f.open = true;
+        opened.push(f);
+      });
     });
     window.addEventListener('afterprint', function(){
       opened.forEach(function(f){ f.open = false; });
@@ -279,7 +297,10 @@ COMPONENTS: list[Component] = [
         "in both themes, and below 760px the figure scrolls sideways rather than shrinking the labels "
         "to nothing. Everything lives in the JSON block inside the figure, so a change is a data edit "
         "and there is no hand-placed coordinate to go stale. A workflow page with no picture is not "
-        "done.",
+        "done. <b>A node's tone is one of acc, green, amber, red, violet and ask, or muted for a box "
+        "that is off</b>: each of the six has the soft fill and the ink note a box is painted with, "
+        "muted paints the plain panel on purpose, and any other tone filled the box with the panel "
+        "color in silence, so the lint refuses it; a lane, an edge or a mark takes any house token.",
         """
 <figure class="flow" aria-label="How a buyer reply becomes a live link">
   <script type="application/json" class="flow-data">
@@ -292,7 +313,7 @@ COMPONENTS: list[Component] = [
     ],
     "nodes": [
       {"id": "send", "col": 0, "lane": "machine", "label": "The email goes out", "note": "LIVE", "tone": "green"},
-      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc-2"},
+      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc"},
       {"id": "draft", "col": 2, "lane": "machine", "label": "The offer drafts itself", "note": "LIVE", "tone": "green"},
       {"id": "send2", "col": 3, "lane": "us", "label": "We click send", "note": "the gate", "tone": "violet"},
       {"id": "pick", "col": 4, "lane": "buyer", "label": "They pick and pay", "note": "email only", "tone": "amber"},
@@ -2106,7 +2127,11 @@ COMPONENTS: list[Component] = [
         "Print block",
         "On every page, because these get printed and PDF'd. It hides the chrome, drops the shadows "
         "and the grid, releases the width cap, blackens links, and forces filtered and "
-        "content-visibility rows back on so a printed table is complete.",
+        "content-visibility rows back on so a printed table is complete. Because paper cannot be "
+        "clicked, it also prints every fold open with its marker gone and drops the sort arrows "
+        "from table headers. And it keeps whole what reads as one thing: a box is never split "
+        "across two pages, a heading never sits alone at a page foot, and a table of twelve rows "
+        "or fewer prints on one page (a longer one splits where it falls).",
         """
 <style>
 @media print{
@@ -2117,8 +2142,33 @@ COMPONENTS: list[Component] = [
   a{color:#000}
   table.dt tbody tr{content-visibility:visible}
   table.dt tbody tr.hide{display:table-row}
+  details::details-content{content-visibility:visible}
+  details > summary{list-style:none}
+  details > summary::-webkit-details-marker{display:none}
+  table.dt th[data-sort]::after{content:none}
+  .callout,.warn,.verdict,.facts,.stage-summary,.cmp,.tl,figure.flow,figure.dgm,figure.chart,.stat,.kpi,tr{break-inside:avoid}
+  h2,h3,h4{break-after:avoid}
+  .dt-wrap:not(:has(tbody tr:nth-child(13))),table:not(:has(tbody tr:nth-child(13))){break-inside:avoid}
 }
 </style>
+
+<!-- ::details-content is Chrome 131 and later. This is the fallback every other browser needs:
+     it opens each closed fold before the page prints and closes it again afterwards. It skips
+     details[data-fold], which the fold component's own script already handles and persists. -->
+<script>
+(function(){
+  var opened = [];
+  window.addEventListener('beforeprint', function(){
+    if (opened.length) return;
+    opened = [].slice.call(document.querySelectorAll('details:not([open]):not([data-fold])'));
+    opened.forEach(function(d){ d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function(){
+    opened.forEach(function(d){ d.removeAttribute('open'); });
+    opened = [];
+  });
+})();
+</script>
 """,
         live_on_page="Print this page, or save it as a PDF, to see it.",
         group="On every page",

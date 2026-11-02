@@ -153,7 +153,14 @@
   a{color:var(--acc); text-decoration:none; overflow-wrap:break-word}
   a:hover{text-decoration:underline}
   p{margin:0 0 12px}
-  ::selection{background:var(--acc-soft); color:var(--acc-ink)}
+  /* THE SELECTION IS THE INK, INVERTED. A highlight inside a tinted callout was the callout's
+     own color: the selection was --acc-soft, the callouts' and code's own ground, so a selection
+     inside one measured 1.0:1. The ink reads on
+     every block (the body text is written in it), so its inverse shows on every block, in every
+     look and both modes. lint.py measures it (selection_contrast.py). -moz- is its own rule: in one
+     list with ::selection, a browser that does not know it drops both. */
+  ::selection{background:var(--ink); color:var(--panel)}
+  ::-moz-selection{background:var(--ink); color:var(--panel)}
   .eyebrow{font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--acc); font-weight:700; margin-bottom:14px}
   .lede{font-size:1.06rem; color:var(--muted)}
   header.cover{border-bottom:2px solid var(--acc); padding-bottom:26px; margin-bottom:26px}
@@ -415,6 +422,42 @@
     a{color:#000}
     table.dt tbody tr{content-visibility:visible}
     table.dt tbody tr.hide{display:table-row}
+    /* Paper cannot be clicked open: a method note printed as a closed fold hides its
+       paragraph, and every sort arrow prints as a stray glyph. Every fold prints open with
+       its marker gone; the script at the foot of the page also sets `open` before printing,
+       for a browser without ::details-content. */
+    details::details-content{content-visibility:visible}
+    details > summary{list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    table.dt th[data-sort]::after{content:none}
+    /* A box is never split across two pages. The section rule above cannot help once a
+       section is taller than a page, so every box that reads as one thing keeps itself
+       whole: callouts, summary strips, fact grids, comparisons, timelines, figures, stat
+       cards and table rows. Proved by inversion in test_print_rules.py. */
+    .callout,.warn,.verdict,.facts,.stage-summary,.cmp,.tl,figure.flow,figure.dgm,figure.chart,.stat,.kpi,tr{break-inside:avoid}
+    /* A heading stays with what follows it, and a SHORT table (twelve body rows or fewer,
+       about a third of a page) prints whole. A longer table is left free to split where it
+       falls: kept whole, it would jump to a fresh page and leave the one before it half
+       empty. Proved by inversion in test_print_rules.py, read back from the PDF. */
+    h2,h3,h4{break-after:avoid}
+    .dt-wrap:not(:has(tbody tr:nth-child(13))),table:not(:has(tbody tr:nth-child(13))){break-inside:avoid}
+  }
+
+  /* ============================================================
+     REDUCED MOTION (DESIGN.md, section 4). A reader
+     whose system asks for less motion keeps every fade and color
+     change and loses the travel: the rail's slide, the tooltip's rise,
+     the chevron's turn, the readout's rise, the drag lift, the bar's
+     growth. :root lifts the specificity so this outranks the component
+     library's own selectors. The rail's eased click scroll is script,
+     and stays: it is a short, reader-started jump.
+     ============================================================ */
+  @media (prefers-reduced-motion: reduce){
+    :root #sidenav, :root #tip, :root .chart-read, :root .rank li,
+    :root details.fold > summary::before, :root details.snip > summary::before,
+    :root .gtrack > span{
+      transition-property:opacity, color, background-color, border-color;
+    }
   }
 
   /* BUILD:CSS - build.py appends the chosen surface's extra CSS here. Leave the marker in place. */
@@ -873,6 +916,25 @@
       if (el && e.pointerType !== 'mouse') { show(el, e.clientX, e.clientY); setTimeout(hide, 2600); }
     });
     document.addEventListener('scroll', function(){ if (Date.now() - shownAt > 400) hide(); }, {passive:true});
+  })();
+
+  /* ---- print: every closed fold opens before the page prints and closes again after ----
+     It is IDEMPOTENT, because Firefox and Safari can fire beforeprint more than once for one
+     print, and a second pass would capture an empty list and leave every fold open afterwards.
+     And it skips `details[data-fold]`, whose own script already opens those for printing AND
+     persists their open state on every toggle: opening them here would silently rewrite the
+     reader's saved state to "everything open". */
+  (function(){
+    var opened = [];
+    window.addEventListener('beforeprint', function(){
+      if (opened.length) return;
+      opened = [].slice.call(document.querySelectorAll('details:not([open]):not([data-fold])'));
+      opened.forEach(function(d){ d.setAttribute('open', ''); });
+    });
+    window.addEventListener('afterprint', function(){
+      opened.forEach(function(d){ d.removeAttribute('open'); });
+      opened = [];
+    });
   })();
 })();
 </script>

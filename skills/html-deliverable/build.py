@@ -96,6 +96,8 @@ COMPONENT_ASSETS = {c.cid: (c.css, c.js) for c in GALLERY_COMPONENTS}
 
 PLACEHOLDER_RE = re.compile(r"\{\{[A-Z_]+\}\}")
 HREF_RE = re.compile(r'href="(https?://[^"]+)"')
+# A character reference closed by a semicolon: the only kind harvest_links decodes.
+ATTR_REF_RE = re.compile(r"&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);")
 H2_RE = re.compile(r"<h2>(.*?)</h2>", re.S)
 
 # Every destination that leaves this document opens in a NEW TAB. A reader keeps a deliverable
@@ -138,6 +140,14 @@ def esc_attr(text: str) -> str:
 def read_text(path: Path) -> str:
     # utf-8-sig: a file a PowerShell script wrote carries a BOM.
     return path.read_text(encoding="utf-8-sig")
+
+
+def title_from_file_name(source: Path) -> str:
+    """The last resort, when the source has no `# ` heading and no --title was passed. The file
+    name then reaches the page as its title, so the builder says so instead of doing it quietly."""
+    print(f"build.py: note: the page title is made from the file name ({source.name}); "
+          "pass --title, or start the source with a `# ` heading", file=sys.stderr)
+    return source.stem.replace("-", " ").replace("_", " ").title()
 
 
 def block(text: str, name: str) -> str:
@@ -217,7 +227,16 @@ NAV_GROUP_THRESHOLD = 12
 # The size of an automatic group when the author declared no parts of their own.
 AUTO_GROUP_SIZE = 8
 BARE_URL_RE = re.compile(r"(?<![(<\[`\"'])\bhttps?://[^\s<>()\[\]\"'`]+")
-CODE_SPAN_RE = re.compile(r"`[^`]*`|```.*?```", re.S)
+# The code autolink skips. A bare URL inside a fence must stay bare: wrapped as `<https://...>`,
+# a code block prints the angle brackets as text, `&lt;https://...&gt;`. A fence is read the way the renderer reads one (`fenced_code`, and FENCE_RUN_RE
+# below): opened by a run of three or more backticks or tildes at column 0 and closed only by the
+# same run at column 0, so a four-backtick paste fence holding a ``` block is skipped whole, and no
+# backtick is left over to pair with one further down and unlink the prose between. An inline span matches its own run of backticks on one line.
+AUTOLINK_CODE_RE = re.compile(
+    r"^(?P<fence>`{3,}|~{3,})[^\n]*\n.*?(?<=\n)(?P=fence)[ ]*$"
+    r"|(?<!\\)(?P<tick>`+)[^\n]+?(?<!`)(?P=tick)(?!`)",
+    re.M | re.S,
+)
 
 
 def autolink(md_text: str) -> str:
@@ -227,7 +246,7 @@ def autolink(md_text: str) -> str:
     always-link rule. URLs already inside a markdown link, a code span or a fenced block are
     left exactly as they are.
     """
-    spans = [(m.start(), m.end()) for m in CODE_SPAN_RE.finditer(md_text)]
+    spans = [(m.start(), m.end()) for m in AUTOLINK_CODE_RE.finditer(md_text)]
 
     def inside_code(index: int) -> bool:
         return any(start <= index < end for start, end in spans)
@@ -260,7 +279,64 @@ def demote_headings(html_text: str) -> str:
 
 
 LIST_MARKER_RE = re.compile(r"^(\s*)(?:[-*+]|\d+[.)])\s+\S")
-FENCE_RE = re.compile(r"^\s*(```|~~~)")
+# The whole run, not its first three marks: a four-backtick paste fence holding a ``` block is
+# closed only by four backticks, so the list lines inside the inner block are never reindented.
+# Leading space is allowed here (unlike FENCE_RUN_RE) so a fence written inside a bullet is left
+# as written too.
+FENCE_RE = re.compile(r"^\s*(`{3,}|~{3,})")
+
+
+# Up to three spaces: four make an indented code block, never a hint.
+TABLE_HINT_LINE_RE = re.compile(r"^ {0,3}\[table:\s*(?:plain|sortable)\]\s*$", re.I)
+# A fence the way the renderer reads one (Python-Markdown's `fenced_code`): opened by a run at
+# column 0, closed only by exactly the same run at column 0, so a four-backtick fence (a
+# paste-ready prompt) is not closed by a three-backtick line inside it, and a longer or indented
+# run inside a fence is content.
+FENCE_RUN_RE = re.compile(r"^(`{3,}|~{3,})(.*)$")
+DELIMITER_ROW_RE = re.compile(r"^\s*\|?\s*:?-+:?\s*(?:\|\s*:?-+:?\s*)*\|?\s*$")
+
+
+def _starts_table(lines: list[str], j: int) -> bool:
+    """A pipe-led row, or a pipe-less row whose next line is the table's delimiter row."""
+    if j >= len(lines):
+        return False
+    row = lines[j].lstrip()
+    if row.startswith("|"):
+        return True
+    # the delimiter row carries a pipe too: a bare "---" is a heading's underline or a rule
+    return ("|" in row and j + 1 < len(lines) and "|" in lines[j + 1]
+            and bool(DELIMITER_ROW_RE.match(lines[j + 1])))
+
+
+def separate_table_hints(md_text: str) -> str:
+    """Give a `[table: ...]` hint written directly above its table a blank line on each side.
+
+    With no blank line, Markdown reads the hint and every row of the table as ONE paragraph: the
+    table reaches the reader as pipes in a sentence and the lint measures one table fewer; and a
+    hint written directly under a line of prose joins that paragraph, so it reaches the reader as
+    text and its choice is lost. Fenced blocks are left exactly as written.
+    """
+    out: list[str] = []
+    fence: str | None = None
+    lines = md_text.split("\n")
+    for i, line in enumerate(lines):
+        run = FENCE_RUN_RE.match(line)
+        if fence is None and run:
+            fence = run.group(1)
+            out.append(line)
+            continue
+        if fence is not None:
+            if line.rstrip(" ") == fence:
+                fence = None
+            out.append(line)
+            continue
+        if fence is None and TABLE_HINT_LINE_RE.match(line) and _starts_table(lines, i + 1):
+            if out and out[-1].strip():
+                out.append("")
+            out += [line, ""]
+            continue
+        out.append(line)
+    return "\n".join(out)
 
 
 def normalize_lists(md_text: str) -> str:
@@ -284,12 +360,14 @@ def normalize_lists(md_text: str) -> str:
     after_marker = False
     for line in md_text.split("\n"):
         fence_hit = FENCE_RE.match(line)
-        if fence_hit:
-            fence = None if fence and line.lstrip().startswith(fence) else (fence or fence_hit.group(1))
+        if fence is None and fence_hit:
+            fence = fence_hit.group(1)
             out.append(line)
             after_marker = False
             continue
         if fence is not None:
+            if line.strip() == fence:
+                fence = None
             out.append(line)
             continue
         marker = LIST_MARKER_RE.match(line)
@@ -367,7 +445,7 @@ def markdown_to_sections(
         title = lines[0][2:].strip()
         lines = lines[1:]
 
-    body_md = autolink(normalize_lists("\n".join(lines)))
+    body_md = autolink(normalize_lists(separate_table_hints("\n".join(lines))))
     before = body_md
     body_md = slider_markers(body_md, prefix)
     if body_md != before:
@@ -1267,7 +1345,12 @@ def harvest_links(content_html: str, given: list[str]) -> list[tuple[str, str]]:
             seen.add(url)
             told.add(url)
             links.append((label.strip(), url))
-    for url in HREF_RE.findall(content_html):
+    # A harvested address is read out of rendered HTML, where `&` is already `&amp;`; decode it
+    # once so the row holds the real URL and links_section escapes it once, like a --link URL
+    # (a link once reached the table as `&amp;amp;`, and its server read the wrong field).
+    # Only a reference closed by `;` is decoded: a browser leaves `&region` or `&copy=` in an
+    # attribute as it is, and html.unescape alone would not (a code review finding).
+    for url in (ATTR_REF_RE.sub(lambda m: html.unescape(m.group(0)), u) for u in HREF_RE.findall(content_html)):
         if url not in seen:
             seen.add(url)
             links.append((host_label(url), url))
@@ -1518,9 +1601,9 @@ def compose(
         surface_body = surface_body.replace("{{" + key + "}}", value)
     surface_body = PLACEHOLDER_RE.sub("", surface_body)
     # An eyebrow nobody filled is removed, not shipped as an empty line of reserved space, and
-    # so is a cover-meta entry (Prepared for, From, By) that nobody filled.
+    # so is a cover-meta entry (Prepared for, From, By, Source) that nobody filled.
     surface_body = re.sub(r'\s*<div class="eyebrow">\s*</div>\n?', "\n", surface_body)
-    surface_body = re.sub(r'[ \t]*<span><b>(?:Prepared for|From|By)</b>\s*</span>\n?', "", surface_body)
+    surface_body = re.sub(r'[ \t]*<span><b>(?:Prepared for|From|By|Source)</b>\s*</span>\n?', "", surface_body)
 
     css = f"  /* ---- surface: {surface} ---- */\n{surface_css}"
     if extra_css:
@@ -1685,10 +1768,23 @@ def agenda_chips(sections: list[dict[str, str]]) -> str:
     return chip_links(sections)
 
 
+# A flag's text is escaped, so a tag in it is text; markdown bold is the one markup it renders,
+# because the lint refuses literal bold in a house box and its advice ("write <b> there") would ship
+# the tag as visible text here. Bold hugs a word on each side, so a masked card number
+# (`**** 4242`) stays as written. No length cap: a cap of 80 once left an 85-character bold lead as
+# literal asterisks on a page's cover; a bold run stops at a star or a line end.
+FLAG_BOLD_RE = re.compile(r"\*\*(?=[^\s*])([^*\n]+?)(?<=[^\s*])\*\*")
+
+
+def flag_text(text: str) -> str:
+    return FLAG_BOLD_RE.sub(r"<strong>\1</strong>", esc(text))
+
+
 def verdict_box(text: str) -> str:
+    """The short answer under the title. Its text is escaped; `**bold**` in it renders bold."""
     if not text:
         return ""
-    return f'  <div class="verdict"><strong>The short answer:</strong> {esc(text)}</div>\n'
+    return f'  <div class="verdict"><strong>The short answer:</strong> {flag_text(text)}</div>\n'
 
 
 CHIP_BY_STATUS = {"open": "a", "doing": "n", "done": "g", "blocked": "r"}
@@ -1877,9 +1973,12 @@ def main(argv: list[str] | None = None) -> int:
         "PREPARED_FOR": esc(args.prepared_for),
         "FROM": esc(args.prepared_from),
         "DATE": esc(args.date),
-        "SOURCE": esc(args.source or source.name),
-        "METHOD": esc(args.method or f"Built from {source.name} on {args.date}. Every figure is read from that file, none is estimated."),
-        "FOOT": esc(args.foot or f"Prepared {args.date}. Built from {source.name}."),
+        # A page names the record it was read from (`--source`), never the local file it was
+        # built from: a file name on a page a reader is handed says nothing to them and can say
+        # too much (an internal project name, a client's name, a draft number).
+        "SOURCE": esc(args.source),
+        "METHOD": esc(args.method or f"Every figure is read from the source data on {args.date}, none is estimated."),
+        "FOOT": esc(args.foot or f"Prepared {args.date}."),
         "VERDICT": verdict_box(args.verdict),
     }
 
@@ -1892,7 +1991,7 @@ def main(argv: list[str] | None = None) -> int:
         title, sections = markdown_to_sections(
             read_text(source), used_components, store_prefix(destination), numbered=not args.unnumbered
         )
-        title = args.title or title or source.stem.replace("-", " ").title()
+        title = args.title or title or title_from_file_name(source)
         nav_pairs = [
             {"id": s["id"], "label": s["label"], "num": s["num"], "kind": s["kind"], "lead": s.get("lead", "")}
             for s in sections
@@ -1917,7 +2016,7 @@ def main(argv: list[str] | None = None) -> int:
         headers, rows = load_rows(source)
         numeric = numeric_columns(headers, rows)
         kinds = classify(headers, rows, numeric)
-        title = args.title or source.stem.replace("-", " ").replace("_", " ").title()
+        title = args.title or title_from_file_name(source)
 
         chart_index = None
         if args.chart_col and args.chart_col in headers:
@@ -1954,7 +2053,7 @@ def main(argv: list[str] | None = None) -> int:
         fields.update(
             {
                 "TITLE": esc(title),
-                "LEDE": esc(args.lede or f"Read straight from {source.name}: {len(rows):,} rows, {len(headers)} columns."),
+                "LEDE": esc(args.lede or f"Read straight from the source data: {len(rows):,} rows, {len(headers)} columns."),
                 "CONTENT": content,
                 "KPIS": stat_cards(args.stat, "kpi g") if args.stat else kpi_cards(headers, rows, numeric, kinds),
                 "TOC": "",

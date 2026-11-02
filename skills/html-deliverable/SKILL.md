@@ -189,10 +189,25 @@ python build.py <input> <output.html> --surface report \
   the builder never prints a second, disagreeing number beside it.
 - **Links are harvested, not invented.** Every external href in the content, plus anything passed
   with `--link`, becomes the Key links table whenever there are two or more. A harvested label
-  carries the host AND the path tail, so three destinations on one host are told apart.
+  carries the host AND the path tail, so three destinations on one host are told apart. A
+  harvested address is decoded once before it is escaped, so a URL with `&` in its query string
+  reaches the table as the same address and never as `&amp;amp;`.
 - **Bare URLs become real links.** Markdown leaves a bare `https://...` as plain text, which
   silently breaks the always-link rule. The builder wraps every bare URL that is not already a
-  link, a code span or a fenced block.
+  link, a code span or a fenced block; a whole fence (three or more backticks, or tildes) is
+  skipped, whatever it holds inside, so a paste-ready block keeps its addresses bare.
+- **A page never names the local file it was built from.** The footer, the method note, the lede
+  and the data report's Source line once printed the input's file name, which says nothing to a
+  reader and can say too much (an internal project name, a client's name, a draft number).
+  `--source "The billing export, read on the first"` names the record the page was read from;
+  with no `--source` the Source line is removed, not shipped empty. The title is the one place a
+  file name can still reach the page: with no `# ` heading and no `--title` it is made from the
+  file name, and the builder prints a note saying so.
+- **A table hint binds wherever the author wrote it.** `[table: plain]` (or any `[table: ...]`
+  hint) on the line directly above its table, or directly under a line of prose, still reaches
+  that table instead of joining the paragraph as text. Fenced blocks are left exactly as written.
+- **A verdict renders `**bold**`.** `--verdict` and the verdict box turn markdown bold into real
+  bold, and the lint refuses a page that still shows literal `**` inside a verdict or a callout.
 - **Every external link leaves with a new tab.** The rewrite runs on the FINISHED page, so it
   catches all three ways a destination reaches a deliverable: the markdown renderer's own `<a>`,
   raw HTML the author pasted into the source, and the Key links table the builder generates.
@@ -250,6 +265,30 @@ a `<ul>` inside a `<p>`.
   SAYS SO and does not pass silently.
 - `--pdf` prints the page through its own print block, so there is one source and the print CSS is
   exercised rather than a second layout engine.
+
+Checks that run on every pass, with no flag:
+
+- **The wall list is read inside every `data:` URI too**, base64 or percent encoded, and inside
+  a `data:` URI nested in one, so a name hidden in an embedded SVG or a text export is caught like
+  one in the visible text. An image or a font payload is not read as text.
+- **Selected text has to read.** The page's own `::selection` is measured against every block its
+  body text reads on, in Light and Dark mode (`selection_contrast.py`, WCAG contrast: 4.5 for the
+  selected text, 3.0 for the selection against its block), and a selection that fails is refused.
+  The house rule, `::selection{background:var(--ink); color:var(--panel)}`, passes everywhere. A
+  color the measure cannot parse (a named color beyond white and black, `oklch()`, a system color)
+  is a warning to check by eye, not a failure.
+- **A flow node's tone needs its pair.** The house tones are `acc`, `green`, `amber`, `red`,
+  `violet` and `ask`, plus `muted` for a box that is off; the lint refuses a node tone whose
+  `-soft` and `-ink` tokens the page does not define, which would render as an unstyled box.
+- **Motion the reader cannot turn down is a warning.** A stylesheet that animates or transitions
+  something and carries no `@media (prefers-reduced-motion: reduce)` block is named, and so is a
+  transition on `all`. Never fatal; the template's own block keeps the fades and drops the travel.
+
+The print block in `template.html` is what `--pdf` and a reader's own print use. On paper every
+fold prints open with its marker gone, sort arrows are dropped, a box that reads as one thing is
+never split across two pages, a heading never sits alone at a page foot, and a table of twelve
+body rows or fewer prints whole (a longer one starts where it falls). A `beforeprint` handler opens
+closed folds for browsers without `::details-content` and closes them again after.
 
 ## Client-safe by construction
 
