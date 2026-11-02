@@ -422,6 +422,25 @@
     a{color:#000}
     table.dt tbody tr{content-visibility:visible}
     table.dt tbody tr.hide{display:table-row}
+    /* Paper cannot be clicked open: a method note printed as a closed fold hides its
+       paragraph, and every sort arrow prints as a stray glyph. Every fold prints open with
+       its marker gone; the script at the foot of the page also sets `open` before printing,
+       for a browser without ::details-content. */
+    details::details-content{content-visibility:visible}
+    details > summary{list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    table.dt th[data-sort]::after{content:none}
+    /* A box is never split across two pages. The section rule above cannot help once a
+       section is taller than a page, so every box that reads as one thing keeps itself
+       whole: callouts, summary strips, fact grids, comparisons, timelines, figures, stat
+       cards and table rows. Proved by inversion in test_print_rules.py. */
+    .callout,.warn,.verdict,.facts,.stage-summary,.cmp,.tl,figure.flow,figure.dgm,figure.chart,.stat,.kpi,tr{break-inside:avoid}
+    /* A heading stays with what follows it, and a SHORT table (twelve body rows or fewer,
+       about a third of a page) prints whole. A longer table is left free to split where it
+       falls: kept whole, it would jump to a fresh page and leave the one before it half
+       empty. Proved by inversion in test_print_rules.py, read back from the PDF. */
+    h2,h3,h4{break-after:avoid}
+    .dt-wrap:not(:has(tbody tr:nth-child(13))),table:not(:has(tbody tr:nth-child(13))){break-inside:avoid}
   }
 
   /* ============================================================
@@ -3661,7 +3680,7 @@ The plan
   </section>
   <section id="c-print">
     <div class="sec-num">Print block</div>
-    <p class="sub">On every page, because these get printed and PDF'd. It hides the chrome, drops the shadows and the grid, releases the width cap, blackens links, and forces filtered and content-visibility rows back on so a printed table is complete.</p>
+    <p class="sub">On every page, because these get printed and PDF'd. It hides the chrome, drops the shadows and the grid, releases the width cap, blackens links, and forces filtered and content-visibility rows back on so a printed table is complete. Because paper cannot be clicked, it also prints every fold open with its marker gone and drops the sort arrows from table headers. And it keeps whole what reads as one thing: a box is never split across two pages, a heading never sits alone at a page foot, and a table of twelve rows or fewer prints on one page (a longer one splits where it falls).</p>
     <div class="demo live"><b>Already live on this page.</b> Print this page, or save it as a PDF, to see it.</div>
       <details class="snip">
         <summary>Copy the HTML</summary>
@@ -3674,8 +3693,33 @@ The plan
   a{color:#000}
   table.dt tbody tr{content-visibility:visible}
   table.dt tbody tr.hide{display:table-row}
+  details::details-content{content-visibility:visible}
+  details &gt; summary{list-style:none}
+  details &gt; summary::-webkit-details-marker{display:none}
+  table.dt th[data-sort]::after{content:none}
+  .callout,.warn,.verdict,.facts,.stage-summary,.cmp,.tl,figure.flow,figure.dgm,figure.chart,.stat,.kpi,tr{break-inside:avoid}
+  h2,h3,h4{break-after:avoid}
+  .dt-wrap:not(:has(tbody tr:nth-child(13))),table:not(:has(tbody tr:nth-child(13))){break-inside:avoid}
 }
-&lt;/style&gt;</code></pre>
+&lt;/style&gt;
+
+&lt;!-- ::details-content is Chrome 131 and later. This is the fallback every other browser needs:
+     it opens each closed fold before the page prints and closes it again afterwards. It skips
+     details[data-fold], which the fold component's own script already handles and persists. --&gt;
+&lt;script&gt;
+(function(){
+  var opened = [];
+  window.addEventListener('beforeprint', function(){
+    if (opened.length) return;
+    opened = [].slice.call(document.querySelectorAll('details:not([open]):not([data-fold])'));
+    opened.forEach(function(d){ d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function(){
+    opened.forEach(function(d){ d.removeAttribute('open'); });
+    opened = [];
+  });
+})();
+&lt;/script&gt;</code></pre>
       </details>
       <p class="sub note">No extra CSS or JavaScript: the base template already carries this one.</p>
   </section>
@@ -4093,6 +4137,25 @@ The plan
       if (el && e.pointerType !== 'mouse') { show(el, e.clientX, e.clientY); setTimeout(hide, 2600); }
     });
     document.addEventListener('scroll', function(){ if (Date.now() - shownAt > 400) hide(); }, {passive:true});
+  })();
+
+  /* ---- print: every closed fold opens before the page prints and closes again after ----
+     It is IDEMPOTENT, because Firefox and Safari can fire beforeprint more than once for one
+     print, and a second pass would capture an empty list and leave every fold open afterwards.
+     And it skips `details[data-fold]`, whose own script already opens those for printing AND
+     persists their open state on every toggle: opening them here would silently rewrite the
+     reader's saved state to "everything open". */
+  (function(){
+    var opened = [];
+    window.addEventListener('beforeprint', function(){
+      if (opened.length) return;
+      opened = [].slice.call(document.querySelectorAll('details:not([open]):not([data-fold])'));
+      opened.forEach(function(d){ d.setAttribute('open', ''); });
+    });
+    window.addEventListener('afterprint', function(){
+      opened.forEach(function(d){ d.removeAttribute('open'); });
+      opened = [];
+    });
   })();
 })();
 </script>

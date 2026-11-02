@@ -2109,7 +2109,11 @@ COMPONENTS: list[Component] = [
         "Print block",
         "On every page, because these get printed and PDF'd. It hides the chrome, drops the shadows "
         "and the grid, releases the width cap, blackens links, and forces filtered and "
-        "content-visibility rows back on so a printed table is complete.",
+        "content-visibility rows back on so a printed table is complete. Because paper cannot be "
+        "clicked, it also prints every fold open with its marker gone and drops the sort arrows "
+        "from table headers. And it keeps whole what reads as one thing: a box is never split "
+        "across two pages, a heading never sits alone at a page foot, and a table of twelve rows "
+        "or fewer prints on one page (a longer one splits where it falls).",
         """
 <style>
 @media print{
@@ -2120,8 +2124,33 @@ COMPONENTS: list[Component] = [
   a{color:#000}
   table.dt tbody tr{content-visibility:visible}
   table.dt tbody tr.hide{display:table-row}
+  details::details-content{content-visibility:visible}
+  details > summary{list-style:none}
+  details > summary::-webkit-details-marker{display:none}
+  table.dt th[data-sort]::after{content:none}
+  .callout,.warn,.verdict,.facts,.stage-summary,.cmp,.tl,figure.flow,figure.dgm,figure.chart,.stat,.kpi,tr{break-inside:avoid}
+  h2,h3,h4{break-after:avoid}
+  .dt-wrap:not(:has(tbody tr:nth-child(13))),table:not(:has(tbody tr:nth-child(13))){break-inside:avoid}
 }
 </style>
+
+<!-- ::details-content is Chrome 131 and later. This is the fallback every other browser needs:
+     it opens each closed fold before the page prints and closes it again afterwards. It skips
+     details[data-fold], which the fold component's own script already handles and persists. -->
+<script>
+(function(){
+  var opened = [];
+  window.addEventListener('beforeprint', function(){
+    if (opened.length) return;
+    opened = [].slice.call(document.querySelectorAll('details:not([open]):not([data-fold])'));
+    opened.forEach(function(d){ d.setAttribute('open', ''); });
+  });
+  window.addEventListener('afterprint', function(){
+    opened.forEach(function(d){ d.removeAttribute('open'); });
+    opened = [];
+  });
+})();
+</script>
 """,
         live_on_page="Print this page, or save it as a PDF, to see it.",
         group="On every page",

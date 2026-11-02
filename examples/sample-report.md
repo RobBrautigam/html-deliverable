@@ -32,7 +32,7 @@ The path an order takes, end to end, and where the two remaining manual steps si
       {"id": "pay", "col": 1, "lane": "platform", "label": "Payment authorized", "note": "LIVE", "tone": "green"},
       {"id": "pick", "col": 2, "lane": "platform", "label": "Warehouse pick", "note": "LIVE", "tone": "green"},
       {"id": "ship", "col": 3, "lane": "platform", "label": "Carrier handoff", "note": "LIVE", "tone": "green"},
-      {"id": "ret", "col": 4, "lane": "shopper", "label": "Return requested", "note": "SELF SERVE", "tone": "acc-2"},
+      {"id": "ret", "col": 4, "lane": "shopper", "label": "Return requested", "note": "SELF SERVE", "tone": "acc"},
       {"id": "grade", "col": 5, "lane": "team", "label": "Condition graded", "note": "BY HAND", "tone": "amber"},
       {"id": "credit", "col": 6, "lane": "team", "label": "Credit issued", "note": "BY HAND", "tone": "amber"}
     ],

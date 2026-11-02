@@ -172,7 +172,11 @@ has caught this twice. The dark token set stays complete so the toggle is never 
 7. **The print block** stays on every page. It hides the toggle, the nav, the grips, the tooltip and
    the table controls; removes the shadows, the grid and the width cap; makes links black; and
    forces `content-visibility:visible` plus `display:table-row` on filtered rows so a printed table
-   is complete. These get PDF'd.
+   is complete. These get PDF'd. Because paper cannot be clicked, every fold prints open with its
+   marker gone and the sort arrows are dropped. Because paper breaks where it likes, a box that
+   reads as one thing (a callout, a summary strip, a figure, a stat card, a table row) is never
+   split, a heading keeps with what follows it, and a table of twelve body rows or fewer prints
+   whole while a longer one starts where it falls.
 8. **Section cards, not floating prose.** Related content groups on a raised `<section>` panel.
 9. **Reading measure.** Body copy runs 65 to 75 characters at the default width. A wide DATA table
    is the one thing allowed to use the full column; prose never is.
@@ -321,6 +325,12 @@ options.
    translate, rotate, scale, width, height, a position offset or a margin, outside a
    `no-preference` block. The rail's eased click scroll is script and stays: it is a short jump
    the reader started.
+9. **Selected text reads on every block.** The selection is the ink inverted,
+   `::selection{background:var(--ink); color:var(--panel)}`: near-black with white text in Light,
+   near-white with the dark ground for text in Dark. A tinted selection vanished inside callouts
+   and code blocks painted the same tint (a contrast of exactly 1.0); the ink already reads on
+   every block the body text sits on, so its inverse is visible on each of them by construction.
+   `selection_contrast.py` measures it and `lint.py` refuses a selection that fails.
 
 ---
 

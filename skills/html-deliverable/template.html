@@ -422,6 +422,25 @@
     a{color:#000}
     table.dt tbody tr{content-visibility:visible}
     table.dt tbody tr.hide{display:table-row}
+    /* Paper cannot be clicked open: a method note printed as a closed fold hides its
+       paragraph, and every sort arrow prints as a stray glyph. Every fold prints open with
+       its marker gone; the script at the foot of the page also sets `open` before printing,
+       for a browser without ::details-content. */
+    details::details-content{content-visibility:visible}
+    details > summary{list-style:none}
+    details > summary::-webkit-details-marker{display:none}
+    table.dt th[data-sort]::after{content:none}
+    /* A box is never split across two pages. The section rule above cannot help once a
+       section is taller than a page, so every box that reads as one thing keeps itself
+       whole: callouts, summary strips, fact grids, comparisons, timelines, figures, stat
+       cards and table rows. Proved by inversion in test_print_rules.py. */
+    .callout,.warn,.verdict,.facts,.stage-summary,.cmp,.tl,figure.flow,figure.dgm,figure.chart,.stat,.kpi,tr{break-inside:avoid}
+    /* A heading stays with what follows it, and a SHORT table (twelve body rows or fewer,
+       about a third of a page) prints whole. A longer table is left free to split where it
+       falls: kept whole, it would jump to a fresh page and leave the one before it half
+       empty. Proved by inversion in test_print_rules.py, read back from the PDF. */
+    h2,h3,h4{break-after:avoid}
+    .dt-wrap:not(:has(tbody tr:nth-child(13))),table:not(:has(tbody tr:nth-child(13))){break-inside:avoid}
   }
 
   /* ============================================================
@@ -897,6 +916,25 @@
       if (el && e.pointerType !== 'mouse') { show(el, e.clientX, e.clientY); setTimeout(hide, 2600); }
     });
     document.addEventListener('scroll', function(){ if (Date.now() - shownAt > 400) hide(); }, {passive:true});
+  })();
+
+  /* ---- print: every closed fold opens before the page prints and closes again after ----
+     It is IDEMPOTENT, because Firefox and Safari can fire beforeprint more than once for one
+     print, and a second pass would capture an empty list and leave every fold open afterwards.
+     And it skips `details[data-fold]`, whose own script already opens those for printing AND
+     persists their open state on every toggle: opening them here would silently rewrite the
+     reader's saved state to "everything open". */
+  (function(){
+    var opened = [];
+    window.addEventListener('beforeprint', function(){
+      if (opened.length) return;
+      opened = [].slice.call(document.querySelectorAll('details:not([open]):not([data-fold])'));
+      opened.forEach(function(d){ d.setAttribute('open', ''); });
+    });
+    window.addEventListener('afterprint', function(){
+      opened.forEach(function(d){ d.removeAttribute('open'); });
+      opened = [];
+    });
   })();
 })();
 </script>

@@ -497,8 +497,11 @@ def markdown_in_raw_html(html: str) -> list[str]:
 # caught it from the finished file, which is the only thing the reader ever sees.
 COMPONENT_ASSETS_EXPECTED: dict[str, tuple[str, str, str]] = {
     # id: (a signature of its markup, of its CSS, of its JS - "" where it has none)
+    # A markup signature is the class ATTRIBUTE, never a bare class name: the template's print
+    # block names `.stage-summary` in a selector on every page, and a bare "stage-summary" read
+    # that as the component in use on pages that never used it.
     "flow": ('class="flow-data"', "figure.flow{--flow-min", "script.flow-data"),
-    "part-summary": ("stage-summary", ".stage-summary{", "data-fold"),
+    "part-summary": ('class="stage-summary"', ".stage-summary{", "data-fold"),
     "asks": ('class="asks"', ".asks{", ""),
     "timeline": ('class="tl"', ".tl-scale{", ""),
     "grouped-bar": ("data-gbar", ".gbar{", "data-gbar"),
