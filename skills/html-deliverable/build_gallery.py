@@ -279,7 +279,10 @@ COMPONENTS: list[Component] = [
         "in both themes, and below 760px the figure scrolls sideways rather than shrinking the labels "
         "to nothing. Everything lives in the JSON block inside the figure, so a change is a data edit "
         "and there is no hand-placed coordinate to go stale. A workflow page with no picture is not "
-        "done.",
+        "done. <b>A node's tone is one of acc, green, amber, red, violet and ask, or muted for a box "
+        "that is off</b>: each of the six has the soft fill and the ink note a box is painted with, "
+        "muted paints the plain panel on purpose, and any other tone filled the box with the panel "
+        "color in silence, so the lint refuses it; a lane, an edge or a mark takes any house token.",
         """
 <figure class="flow" aria-label="How a buyer reply becomes a live link">
   <script type="application/json" class="flow-data">
@@ -292,7 +295,7 @@ COMPONENTS: list[Component] = [
     ],
     "nodes": [
       {"id": "send", "col": 0, "lane": "machine", "label": "The email goes out", "note": "LIVE", "tone": "green"},
-      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc-2"},
+      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc"},
       {"id": "draft", "col": 2, "lane": "machine", "label": "The offer drafts itself", "note": "LIVE", "tone": "green"},
       {"id": "send2", "col": 3, "lane": "us", "label": "We click send", "note": "the gate", "tone": "violet"},
       {"id": "pick", "col": 4, "lane": "buyer", "label": "They pick and pay", "note": "email only", "tone": "amber"},

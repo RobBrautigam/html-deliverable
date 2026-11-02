@@ -311,6 +311,16 @@ options.
    freeze.
 7. **One authored motion moment per page**, eased out from an already-visible default. Never an
    identical entrance animation on every section.
+8. **Motion honors the reader's reduced-motion setting.** Under `prefers-reduced-motion: reduce` a
+   page keeps its fades and color changes and drops the travel: `template.html` carries the block
+   for every component that moves (the rail's slide, the tooltip's rise, the fold chevron, the
+   chart readout, the drag-rank lift, the grouped bar's growth), and a new component that moves
+   joins its selector list, which `test_reduced_motion.py` reads from the gallery itself. A
+   transition names the properties that move, never `all`, and a transition that names none
+   animates all. `lint.py` warns on either: motion is a transition or an animation on transform,
+   translate, rotate, scale, width, height, a position offset or a margin, outside a
+   `no-preference` block. The rail's eased click scroll is script and stays: it is a short jump
+   the reader started.
 
 ---
 

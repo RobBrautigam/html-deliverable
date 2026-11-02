@@ -9,7 +9,8 @@ Exit codes: 0 clean, 1 at least one hard rule broken, 2 the file could not be re
 What it checks (each maps to a named rule, with the reason it exists):
     0. NO LEAK. The whole file, not just the prose: visible text, attributes, comments and CSS
        are read against the wall list in `wall-list.txt`, so a company or client name cannot
-       ride out inside a class name, a data attribute or a stylesheet comment. A page whose
+       ride out inside a class name, a data attribute or a stylesheet comment, and the text
+       inside every `data:` URI is decoded (base64 or percent) and read too. A page whose
        audience is EXTERNAL fails on a hit; any other page is warned. The audience comes from
        --audience, or from the page's own data-audience attribute, which build.py writes.
        --allow names the companies this page is allowed to name (repeatable, or comma-separated).
@@ -36,7 +37,8 @@ What it checks (each maps to a named rule, with the reason it exists):
        page's own print block is exercised rather than a second layout engine
 
 WARNINGS (printed, never fatal): a data table with no sortable header, because any table or
-list of data ships with filtering and sorting.
+list of data ships with filtering and sorting; and a stylesheet that moves something by transform
+or animation with no `prefers-reduced-motion: reduce` block, or a `transition: all`.
 
 The Playwright check uses the Python package when it is installed, otherwise the Node package
 from a known module root (`PLAYWRIGHT_NODE_ROOT`, a `node_modules` beside this file, or one in
@@ -47,6 +49,8 @@ is reported as a FAILURE, never as a pass.
 from __future__ import annotations
 
 import argparse
+import base64
+import codecs
 import json
 import os
 import re
@@ -55,6 +59,11 @@ import sys
 import tempfile
 from html import unescape
 from pathlib import Path
+from urllib.parse import unquote, unquote_to_bytes
+
+# The selection check lives in its own standard-library module beside this file.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import selection_contrast  # noqa: E402
 
 NODE_MODULE_ROOTS = [
     os.environ.get("PLAYWRIGHT_NODE_ROOT", ""),
@@ -151,7 +160,8 @@ def wall_hits(html: str, allow: list[str] | None = None, names: list[str] | None
 
     hits: list[tuple[str, int, str]] = []
     seen: set[str] = set()
-    for start, end, name in scan(html):
+    raw_spans = scan(html)
+    for start, end, name in raw_spans:
         seen.add(name)
         hits.append((name, line_of(html, start), re.sub(r"\s+", " ", html[max(0, start - 24) : end + 24]).strip()))
 
@@ -167,7 +177,130 @@ def wall_hits(html: str, allow: list[str] | None = None, names: list[str] | None
             seen.add(name)
             window = re.sub(r"\s+", " ", decoded[max(0, start - 24) : end + 24]).strip()
             hits.append((f"{name} (written with entities)", line_of(decoded, start), window))
+
+    # A name inside an embedded file rides out with the page: a download written as
+    # `data:text/csv;base64,...` once named an archived channel on the wall, and neither pass above
+    # could read it; a reviewer found it by hand. The third pass decodes every data: URI's text and
+    # scans it, and names the attribute the URI sits in and the file line it starts on. Each name
+    # counts once per URI, and a name the raw pass already read inside the URI's own span (an
+    # unencoded payload) is not counted twice.
+    for uri_start, uri_end, where, text in data_uri_texts(html):
+        reported = {n for s, _e, n in raw_spans if uri_start <= s < uri_end}
+        for start, end, name in scan(text) + scan(unescape(text)):
+            if name in reported:
+                continue
+            reported.add(name)
+            window = re.sub(r"\s+", " ", text[max(0, start - 24) : end + 24]).strip()
+            hits.append((f"{name} (inside a data: URI {where})", line_of(html, uri_start), window))
     return sorted(hits, key=lambda hit: hit[1])
+
+
+# `data:[<type>][;<param>]*,` and then the payload, not preceded by a word character or a hyphen,
+# so the prose "metadata:" and "data: 12 rows" are not URIs. Where the payload ends depends on
+# what opened it (data_uri_payload).
+DATA_URI_RE = re.compile(
+    r"(?<![\w-])data:(?P<type>[\w.+-]+/[\w.+-]+)?(?P<params>(?:;[\w.+-]+(?:=[^;,\"'\s<>()]*)?)*),",
+    re.I,
+)
+DATA_URI_TEXT_TYPES = re.compile(
+    r"^(text/.*|image/svg\+xml|application/(json|xml|csv|javascript|ecmascript)|.*\+(xml|json))$",
+    re.I,
+)
+DATA_URI_NEST_LIMIT = 3
+
+
+def data_uri_payload(html: str, match: re.Match[str]) -> str:
+    """The payload's raw text. A URI opened by a quote runs to the matching quote (an attribute
+    value, or a CSS `url("...")`); one opened by a parenthesis runs to the closing one (a bare
+    CSS `url(...)`); an unquoted attribute value runs to whitespace or the end of the tag."""
+    before = html[match.start() - 1] if match.start() else ""
+    rest = html[match.end() :]
+    stop = {'"': '"', "'": "'", "(": ")"}.get(before)
+    if stop:
+        end = rest.find(stop)
+        return rest if end < 0 else rest[:end]
+    return re.match(r"[^\s<>\"']*", rest).group(0)
+
+
+def data_uri_where(html: str, index: int) -> str:
+    """Where a data: URI sits, in words: the attribute of the tag it is inside, or the element
+    whose text carries it (a `<style>` or `<script>` block)."""
+    opened = html.rfind("<", 0, index)
+    closed = html.rfind(">", 0, index)
+    if opened > closed:
+        segment = html[opened:index]
+        # everything before an unterminated quote: the value the URI opens is cut off, so an
+        # `=` inside it (`style="--x=1;background:url(`) is never read as an attribute name
+        head = segment[: re.match(r"(?:[^\"']|\"[^\"]*\"|'[^']*')*", segment).end()]
+        name = re.search(r"([^\s\"'<>/=]+)\s*=\s*$", head)
+        return f"in the {name.group(1).lower()} attribute" if name else "inside a tag"
+    element = re.match(r"<\s*([a-zA-Z][\w-]*)", html[opened:]) if opened >= 0 else None
+    return f"in a <{element.group(1).lower()}> element" if element else "in the page's text"
+
+
+def data_uri_text(html: str, match: re.Match[str]) -> str | None:
+    """A data: URI's payload as text, or None when it is binary or will not decode.
+
+    The payload is entity-decoded first (a browser does that to every attribute value), then
+    base64- or percent-decoded. It is read as text when its type is textual or its bytes decode
+    cleanly with no control characters beyond whitespace; an image or a font is not, because
+    random bytes read as text match a three-letter wall entry sooner or later. The bytes are read
+    in the URI's own `charset` when it names one, else as UTF-16 when they open with its byte
+    order mark (a spreadsheet's "Unicode text" export), else as UTF-8.
+    """
+    payload = unescape(data_uri_payload(html, match))
+    kind = (match.group("type") or "text/plain").lower()
+    params = (match.group("params") or "").lower()
+    named = re.search(r";charset=([\w.:-]+)", params)
+    try:
+        if ";base64" in params:
+            clean = re.sub(r"[^A-Za-z0-9+/=_-]", "", unquote(payload)).rstrip("=")
+            raw = base64.b64decode(
+                clean.translate(str.maketrans("-_", "+/")) + "=" * (-len(clean) % 4)
+            )
+        else:
+            raw = unquote_to_bytes(payload)
+    except (ValueError, TypeError):
+        return None
+    codec = named.group(1) if named else ("utf-16" if raw[:2] in (b"\xff\xfe", b"\xfe\xff") else "utf-8")
+    try:
+        # `base64`, `hex` or `zlib` look up as codecs but are not text encodings: a charset
+        # naming one is read as UTF-8, never a traceback
+        if not getattr(codecs.lookup(codec), "_is_text_encoding", True):
+            codec = "utf-8"
+    except LookupError:
+        codec = "utf-8"
+    try:
+        if DATA_URI_TEXT_TYPES.match(kind):
+            return raw.decode(codec, errors="replace")
+        text = raw.decode(codec)
+    except (LookupError, UnicodeError, ValueError):
+        return None
+    if re.search(r"[\x00-\x08\x0b\x0e-\x1f\x7f]", text):
+        return None
+    return text
+
+
+def data_uri_texts(html: str, depth: int = 0) -> list[tuple[int, int, str, str]]:
+    """Every data: URI in the text with its decoded payload: (start, end, where, text). A payload
+    that itself carries a data: URI (an SVG with an embedded file) is read too, to a bounded
+    depth, and reported at the outer URI's span and attribute."""
+    found: list[tuple[int, int, str, str]] = []
+    for match in DATA_URI_RE.finditer(html):
+        # A payload with no base64 and no percent escape is plain text in the file, which the raw
+        # and entity passes already read; reading it again counted a name twice.
+        if ";base64" not in (match.group("params") or "").lower() and "%" not in data_uri_payload(html, match):
+            continue
+        text = data_uri_text(html, match)
+        if not text:
+            continue
+        end = match.end() + len(data_uri_payload(html, match))
+        where = data_uri_where(html, match.start())
+        found.append((match.start(), end, where, text))
+        if depth + 1 < DATA_URI_NEST_LIMIT:
+            for _, _, _, inner in data_uri_texts(text, depth + 1):
+                found.append((match.start(), end, where.replace("in ", "nested in ", 1), inner))
+    return found
 
 
 def resolve_audience(html: str, flag: str = "auto") -> str:
@@ -323,10 +456,14 @@ def money_in_figures(html: str) -> list[str]:
 # as a row of pipes.
 FOLD_BODY_RE = re.compile(r'<div[^>]*class="[^"]*\bfold-body\b[^"]*"[^>]*>(.*?)</div>', re.S | re.I)
 RAW_BLOCK_RE = re.compile(
-    r'<(?:div|section|aside|details)[^>]*class="[^"]*\b(?:fold-body|ros|asks|stage-summary)\b[^"]*"[^>]*>(.*?)</(?:div|section|aside|details)>',
+    r'<(?:div|section|aside|details)[^>]*class="[^"]*\b(?:fold-body|ros|asks|stage-summary|verdict|callout)\b[^"]*"[^>]*>(.*?)</(?:div|section|aside|details)>',
     re.S | re.I,
 )
-LITERAL_BOLD_RE = re.compile(r"\*\*[^*\n]{1,80}\*\*")
+CODE_ELEMENT_RE = re.compile(r"<(code|pre)\b[^>]*>.*?</\1\s*>", re.S | re.I)
+# Bold is two asterisks hugging a word on each side, so a masked card number (`**** 4242`) or a
+# glob is not bold. No length cap, the same as build.py's FLAG_BOLD_RE: with a cap of 80 the check
+# missed an 85-character literal bold on a verdict. Text inside <code> or <pre> is code, never bold.
+LITERAL_BOLD_RE = re.compile(r"\*\*(?=[^\s*])[^*\n]+?(?<=[^\s*])\*\*")
 PIPE_ROW_RE = re.compile(r"^[ \t]*\|.*\|[ \t]*$", re.M)
 
 
@@ -334,7 +471,7 @@ def markdown_in_raw_html(html: str) -> list[str]:
     """Literal Markdown that reached the page because it was written inside a raw HTML block."""
     hits: list[str] = []
     for body in RAW_BLOCK_RE.findall(html):
-        text = strip_text(body)
+        text = strip_text(CODE_ELEMENT_RE.sub(" ", body))
         bold = LITERAL_BOLD_RE.search(text)
         if bold:
             hits.append(
@@ -369,6 +506,78 @@ COMPONENT_ASSETS_EXPECTED: dict[str, tuple[str, str, str]] = {
     "slider": ("slider-row", ".slider-head{", "data-slider"),
     "data-table": ("table class=\"dt\"", ".dt-filter", "dt-filter"),
 }
+
+
+STYLE_BLOCK_RE = re.compile(r"<style\b[^>]*>(.*?)</style>", re.S | re.I)
+STYLE_ATTR_RE = re.compile(r"""(?<![\w-])style\s*=\s*(["'])(.*?)\1""", re.S | re.I)
+CSS_COMMENT_RE = re.compile(r"/\*.*?\*/", re.S)
+CSS_TOKEN_RE = re.compile(r"--([a-zA-Z0-9_-]+)\s*:")
+# The neutral node: `muted` has no soft or ink pair on purpose, and what the renderer paints for
+# it (the panel fill, a muted stroke and note) is the look of a box that is off.
+NEUTRAL_NODE_TONE = "muted"
+
+
+def page_tokens(html: str) -> set[str]:
+    """Every custom property the page declares: in its stylesheets and in inline `style`
+    attributes, never inside a CSS comment."""
+    sources = STYLE_BLOCK_RE.findall(html) + [value for _q, value in STYLE_ATTR_RE.findall(html)]
+    return {token for css in sources for token in CSS_TOKEN_RE.findall(CSS_COMMENT_RE.sub("", css))}
+
+
+def flow_tone_findings(html: str) -> list[str]:
+    """A flow figure's tone the page cannot paint.
+
+    The renderer fills a node with `var(--<tone>-soft, var(--panel))` and writes its note in
+    `var(--<tone>-ink, var(--muted))`, and paints a lane label, an edge or a mark in `var(--<tone>)`.
+    A token the page does not define falls back in silence: an `acc-2` node filled with the panel
+    color on the gallery's own demo and on a real page. So a node tone needs the tone, its
+    `-soft` and its `-ink` on the page, and a lane, edge or mark tone needs the tone. The tokens are
+    read from the page's own stylesheets, so a pair the template gains later passes with no change
+    here. A node with no tone is `acc` (the renderer's default); a mark with none is `ask`; a node
+    in `muted` is the neutral box, allowed. A fragment with no stylesheet and no `--panel` (a
+    composed page's `source/` body) is not judged: the page built from it is.
+    """
+    defined = page_tokens(html)
+    # A fragment is judged by the page built from it: no stylesheet and no `--panel` (the
+    # renderer's own fallback) means a `source/` body, whose inline tokens are not a theme.
+    if not STYLE_BLOCK_RE.search(html) and "panel" not in defined:
+        return []
+    node_tones = sorted(t for t in defined if f"{t}-soft" in defined and f"{t}-ink" in defined)
+    if NEUTRAL_NODE_TONE in defined:
+        node_tones.append(NEUTRAL_NODE_TONE)
+    findings: list[str] = []
+    for index, raw in enumerate(FLOW_DATA_RE.findall(html), start=1):
+        try:
+            data = json.loads(raw)
+        except ValueError:
+            continue
+        if not isinstance(data, dict):
+            continue
+        name = str(data.get("title") or f"flow figure {index}")[:60]
+
+        def items(key: str) -> list[dict]:
+            value = data.get(key)
+            return [item for item in value if isinstance(item, dict)] if isinstance(value, list) else []
+
+        for node in items("nodes"):
+            tone = str(node.get("tone") or "acc")
+            if tone not in node_tones:
+                findings.append(
+                    f'the flow "{name}" colors node "{node.get("label") or node.get("id")}" with tone '
+                    f"`{tone}`, and the page defines no `--{tone}-soft` and `--{tone}-ink` pair, so the "
+                    f"box fills with the panel color in silence. A node tone is one of: "
+                    f"{', '.join(node_tones) or 'none on this page'}"
+                )
+        for key, word, default in (("lanes", "lane", ""), ("edges", "edge", ""), ("marks", "mark", "ask")):
+            for item in items(key):
+                tone = str(item.get("tone") or default)
+                if tone and tone not in defined:
+                    label = item.get("label") or item.get("id") or f'{item.get("from")} to {item.get("to")}'
+                    findings.append(
+                        f'the flow "{name}" colors {word} "{label}" with tone `{tone}`, which the page '
+                        "does not define, so it paints in the default color in silence"
+                    )
+    return findings
 
 
 def components_without_assets(html: str) -> list[str]:
@@ -804,6 +1013,185 @@ def title_findings(html: str) -> list[str]:
     return out
 
 
+# --------------------------------------------------------------------------- reduced motion
+#
+# The template and its gallery once moved things by transform with no reduced-motion block at
+# all, and a reader who asked their system for less motion got all of it. A page's stylesheet that MOVES
+# something (a transition or an animation on transform, translate, rotate, scale, width, height,
+# a position offset or a margin) carries a `@media (prefers-reduced-motion: reduce)` block, and a
+# transition names its properties rather than `all` (written or implied: a segment with no
+# property name means all). Motion inside a `no-preference` block is already gated. A fade is not
+# travel. WARNINGS, never fatal. This is a presence check: which selectors the block covers is
+# held by the gallery test (test_reduced_motion.py). Comments are blanked first (a comment that
+# documents a transition is not one), keeping every offset so a line number still points at the file.
+
+MOVING_PROPERTIES = {
+    "transform", "translate", "rotate", "scale", "width", "height", "top", "left", "right",
+    "bottom", "inset", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
+}
+CSS_WIDE_KEYWORDS = {"none", "inherit", "initial", "unset", "revert", "revert-layer"}
+TIME_RE = re.compile(r"^-?[\d.]+m?s$", re.I)
+EASING_RE = re.compile(r"^(?:ease(?:-in|-out|-in-out)?|linear|step-start|step-end|allow-discrete|normal)$", re.I)
+TRANSITION_DECL_RE = re.compile(r"(?<![\w])(?:-(?:webkit|moz|ms|o)-)?transition(-property)?\s*:\s*([^;{}]*)", re.I)
+ANIMATION_DECL_RE = re.compile(r"(?<![\w])(?:-(?:webkit|moz|ms|o)-)?animation(?:-name)?\s*:\s*([^;{}]*)", re.I)
+KEYFRAMES_RE = re.compile(r"@keyframes\s+([\w-]+)\s*\{", re.I)
+REDUCED_MOTION_RE = re.compile(r"@media[^{]*prefers-reduced-motion\s*(?::\s*reduce\s*)?\)", re.I)
+NO_PREFERENCE_RE = re.compile(r"@media(?![^{]*\bnot\b)[^{]*prefers-reduced-motion\s*:\s*no-preference", re.I)
+ZERO_TIME_RE = re.compile(r"^-?0*\.?0+m?s$", re.I)
+MOVING_DECL_RE = re.compile(
+    r"(?<![\w-])(" + "|".join(sorted(MOVING_PROPERTIES, key=len, reverse=True)) + r")\s*:", re.I
+)
+
+
+def selection_findings(html: str) -> list[str]:
+    """A failure per block the page's own selection cannot be seen on, or read in.
+
+    The page's own dark is measured as written, from the page's own stylesheet.
+    """
+    report = selection_contrast.page_report(html)
+    if not report.rules:
+        return []
+    out = [
+        f"the text selection cannot be read: {f.line()}; the house rule is "
+        "::selection{background:var(--ink); color:var(--panel)}"
+        for f in report.findings[:6]
+    ]
+    if len(report.findings) > 6:
+        out.append(f"the text selection fails on {len(report.findings) - 6} more blocks")
+    out += [f"the text selection cannot be measured: {u}" for u in report.unmeasured]
+    return out
+
+
+def page_css(html: str) -> list[tuple[int, str]]:
+    """Every `<style>` body with its comments blanked, and the offset it starts at in the file."""
+    blocks = []
+    for match in STYLE_BLOCK_RE.finditer(html):  # group 1 is the body
+        body = CSS_COMMENT_RE.sub(lambda m: re.sub(r"[^\n]", " ", m.group(0)), match.group(1))
+        blocks.append((match.start(1), body))
+    return blocks
+
+
+def _block_after(css: str, at: int) -> tuple[int, int] | None:
+    """The span of the brace block that opens at or after `at`, braces included."""
+    i = css.find("{", at)
+    if i < 0:
+        return None
+    depth = 0
+    for j in range(i, len(css)):
+        depth += {"{": 1, "}": -1}.get(css[j], 0)
+        if depth == 0:
+            return i, j + 1
+    return i, len(css)
+
+
+def reduced_motion_blocks(html: str) -> str:
+    """The text of every reduced-motion block in the page's stylesheets, joined."""
+    found = []
+    for _, css in page_css(html):
+        for match in REDUCED_MOTION_RE.finditer(css):
+            span = _block_after(css, match.end())
+            if span:
+                found.append(css[span[0] : span[1]])
+    return "\n".join(found)
+
+
+def _segments(value: str) -> list[str]:
+    """A comma list split at the top level only (the commas inside cubic-bezier() stay put)."""
+    parts, depth, cur = [], 0, ""
+    for ch in value:
+        depth += {"(": 1, ")": -1}.get(ch, 0)
+        if ch == "," and depth == 0:
+            parts.append(cur)
+            cur = ""
+        else:
+            cur += ch
+    return parts + [cur]
+
+
+def transition_properties(value: str, longhand: bool = False) -> list[str]:
+    """The properties a `transition` (or `transition-property`) value animates. A shorthand
+    segment that names no property animates `all`."""
+    props = []
+    value = re.sub(r"!\s*important", " ", value, flags=re.I)
+    for segment in _segments(value):
+        tokens = [re.sub(r"^-(?:webkit|moz|ms|o)-", "", t) for t in re.split(r"\s+(?![^(]*\))", segment.strip()) if t]
+        if not tokens:
+            continue
+        if all(t.lower().startswith("var(") for t in tokens):
+            continue  # a custom property: its value is unknown here, so nothing is claimed about it
+        if longhand:
+            props.append(tokens[0].lower())
+            continue
+        times = [t for t in tokens if TIME_RE.match(t)]
+        if times and ZERO_TIME_RE.match(times[0]):
+            continue  # a zero duration is the idiom for "no transition"
+        named = [t.lower() for t in tokens if not TIME_RE.match(t) and not EASING_RE.match(t) and "(" not in t]
+        props.append(named[0] if named else "all")
+    return props
+
+
+def _gated(css: str) -> str:
+    """The stylesheet with every `no-preference` block blanked: motion there is already gated."""
+    out = css
+    for match in NO_PREFERENCE_RE.finditer(css):
+        span = _block_after(css, match.end())
+        if span:
+            out = out[: span[0]] + re.sub(r"[^\n]", " ", out[span[0] : span[1]]) + out[span[1] :]
+    return out
+
+
+def moving_keyframes(css: str) -> set[str]:
+    """The names of the keyframes that move something (a fade-only keyframe is not travel)."""
+    names = set()
+    for match in KEYFRAMES_RE.finditer(css):
+        span = _block_after(css, match.end() - 1)
+        if span and MOVING_DECL_RE.search(css[span[0] : span[1]]):
+            names.add(match.group(1).lower())
+    return names
+
+
+def first_motion(css: str, moving_names: set[str] | None = None) -> re.Match[str] | None:
+    """The first declaration in this stylesheet that moves something, outside a no-preference
+    block. `moving_names` are the moving keyframes of the whole page (they may sit in another
+    `<style>` block than the animation that uses them)."""
+    gated = _gated(css)
+    moving_names = moving_keyframes(css) if moving_names is None else moving_names
+    hits = []
+    for match in TRANSITION_DECL_RE.finditer(gated):
+        props = transition_properties(match.group(2), longhand=bool(match.group(1)))
+        if any(p == "all" or p in MOVING_PROPERTIES for p in props):
+            hits.append(match)
+    for match in ANIMATION_DECL_RE.finditer(gated):
+        tokens = {t.lower() for t in re.split(r"[\s,]+", match.group(1)) if t}
+        if tokens & moving_names:
+            hits.append(match)
+    return min(hits, key=lambda m: m.start()) if hits else None
+
+
+def motion_findings(html: str) -> list[str]:
+    findings: list[str] = []
+    blocks = page_css(html)
+    names = set().union(*(moving_keyframes(css) for _, css in blocks)) if blocks else set()
+    moves = next(((start, m) for start, css in blocks for m in [first_motion(css, names)] if m), None)
+    if moves and not any(REDUCED_MOTION_RE.search(css) for _, css in blocks):
+        start, match = moves
+        findings.append(
+            f"the stylesheet moves something at line {line_of(html, start + match.start())} "
+            f"(`{match.group(0).strip()[:48]}`) and carries no @media (prefers-reduced-motion: reduce) "
+            "block: a reader whose system asks for less motion still gets the travel "
+            "(DESIGN.md section 4 item 8)"
+        )
+    for start, css in blocks:
+        for match in TRANSITION_DECL_RE.finditer(css):
+            if "all" in transition_properties(match.group(2), longhand=bool(match.group(1))):
+                findings.append(
+                    f"a transition that animates `all` at line {line_of(html, start + match.start())} "
+                    f"(`{match.group(0).strip()[:48]}`): name the properties that move "
+                    "(DESIGN.md section 4 item 8)"
+                )
+    return findings
+
+
 def check(
     html: str,
     *,
@@ -822,6 +1210,10 @@ def check(
     # A description meta from the lede rides beside it (the builder writes it; a hand-written
     # page without one gets a note, not a failure).
     failures += title_findings(html)
+    # SELECTED TEXT READS ON EVERY BLOCK: a highlight the same color as the callout it sits in is
+    # invisible. Measured in every look and mode the page has; a page with no selection rule of
+    # its own keeps the browser's and is not failed.
+    failures += selection_findings(html)
     if not re.search(r'<meta\s+name="description"\s+content="[^"]+"', html, re.I):
         warnings.append("no <meta name=\"description\">: the builder writes one from the lede")
 
@@ -986,6 +1378,9 @@ def check(
             "a @media (prefers-color-scheme) block is present: a dark-OS machine would render this dark unasked"
         )
 
+    # 6b. WARNING, never fatal: motion the reader cannot turn down
+    warnings += motion_findings(html)
+
     # 7. self-contained
     for pattern, label in (
         (r'<script[^>]+src="https?://', "an external script"),
@@ -1029,6 +1424,7 @@ def check(
         failures.append("a <ul> inside a <p>: the browser closes the paragraph and the layout breaks")
     failures.extend(markdown_in_raw_html(html))
     failures.extend(components_without_assets(html))
+    failures.extend(flow_tone_findings(html))
 
     # 9. money
     if money:

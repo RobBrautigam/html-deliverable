@@ -96,6 +96,8 @@ COMPONENT_ASSETS = {c.cid: (c.css, c.js) for c in GALLERY_COMPONENTS}
 
 PLACEHOLDER_RE = re.compile(r"\{\{[A-Z_]+\}\}")
 HREF_RE = re.compile(r'href="(https?://[^"]+)"')
+# A character reference closed by a semicolon: the only kind harvest_links decodes.
+ATTR_REF_RE = re.compile(r"&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);")
 H2_RE = re.compile(r"<h2>(.*?)</h2>", re.S)
 
 # Every destination that leaves this document opens in a NEW TAB. A reader keeps a deliverable
@@ -217,7 +219,16 @@ NAV_GROUP_THRESHOLD = 12
 # The size of an automatic group when the author declared no parts of their own.
 AUTO_GROUP_SIZE = 8
 BARE_URL_RE = re.compile(r"(?<![(<\[`\"'])\bhttps?://[^\s<>()\[\]\"'`]+")
-CODE_SPAN_RE = re.compile(r"`[^`]*`|```.*?```", re.S)
+# The code autolink skips. A bare URL inside a fence must stay bare: wrapped as `<https://...>`,
+# a code block prints the angle brackets as text, `&lt;https://...&gt;`. A fence is read the way the renderer reads one (`fenced_code`, and FENCE_RUN_RE
+# below): opened by a run of three or more backticks or tildes at column 0 and closed only by the
+# same run at column 0, so a four-backtick paste fence holding a ``` block is skipped whole, and no
+# backtick is left over to pair with one further down and unlink the prose between. An inline span matches its own run of backticks on one line.
+AUTOLINK_CODE_RE = re.compile(
+    r"^(?P<fence>`{3,}|~{3,})[^\n]*\n.*?(?<=\n)(?P=fence)[ ]*$"
+    r"|(?<!\\)(?P<tick>`+)[^\n]+?(?<!`)(?P=tick)(?!`)",
+    re.M | re.S,
+)
 
 
 def autolink(md_text: str) -> str:
@@ -227,7 +238,7 @@ def autolink(md_text: str) -> str:
     always-link rule. URLs already inside a markdown link, a code span or a fenced block are
     left exactly as they are.
     """
-    spans = [(m.start(), m.end()) for m in CODE_SPAN_RE.finditer(md_text)]
+    spans = [(m.start(), m.end()) for m in AUTOLINK_CODE_RE.finditer(md_text)]
 
     def inside_code(index: int) -> bool:
         return any(start <= index < end for start, end in spans)
@@ -1267,7 +1278,12 @@ def harvest_links(content_html: str, given: list[str]) -> list[tuple[str, str]]:
             seen.add(url)
             told.add(url)
             links.append((label.strip(), url))
-    for url in HREF_RE.findall(content_html):
+    # A harvested address is read out of rendered HTML, where `&` is already `&amp;`; decode it
+    # once so the row holds the real URL and links_section escapes it once, like a --link URL
+    # (a statute link once reached the table as `&amp;amp;`, and its server read the wrong field).
+    # Only a reference closed by `;` is decoded: a browser leaves `&region` or `&copy=` in an
+    # attribute as it is, and html.unescape alone would not (a code review finding).
+    for url in (ATTR_REF_RE.sub(lambda m: html.unescape(m.group(0)), u) for u in HREF_RE.findall(content_html)):
         if url not in seen:
             seen.add(url)
             links.append((host_label(url), url))
@@ -1685,10 +1701,23 @@ def agenda_chips(sections: list[dict[str, str]]) -> str:
     return chip_links(sections)
 
 
+# A flag's text is escaped, so a tag in it is text; markdown bold is the one markup it renders,
+# because the lint refuses literal bold in a house box and its advice ("write <b> there") would ship
+# the tag as visible text here. Bold hugs a word on each side, so a masked card number
+# (`**** 4242`) stays as written. No length cap: a cap of 80 once left an 85-character bold lead as
+# literal asterisks on a page's cover; a bold run stops at a star or a line end.
+FLAG_BOLD_RE = re.compile(r"\*\*(?=[^\s*])([^*\n]+?)(?<=[^\s*])\*\*")
+
+
+def flag_text(text: str) -> str:
+    return FLAG_BOLD_RE.sub(r"<strong>\1</strong>", esc(text))
+
+
 def verdict_box(text: str) -> str:
+    """The short answer under the title. Its text is escaped; `**bold**` in it renders bold."""
     if not text:
         return ""
-    return f'  <div class="verdict"><strong>The short answer:</strong> {esc(text)}</div>\n'
+    return f'  <div class="verdict"><strong>The short answer:</strong> {flag_text(text)}</div>\n'
 
 
 CHIP_BY_STATUS = {"open": "a", "doing": "n", "done": "g", "blocked": "r"}

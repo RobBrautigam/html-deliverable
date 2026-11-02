@@ -153,7 +153,14 @@
   a{color:var(--acc); text-decoration:none; overflow-wrap:break-word}
   a:hover{text-decoration:underline}
   p{margin:0 0 12px}
-  ::selection{background:var(--acc-soft); color:var(--acc-ink)}
+  /* THE SELECTION IS THE INK, INVERTED (the owner, 2026-10-17, drop 1038: "when I highlight text
+     ... it literally is the same color blue as the background blue"). It was --acc-soft, the
+     callouts' and code's own ground, so a selection inside one measured 1.0:1. The ink reads on
+     every block (the body text is written in it), so its inverse shows on every block, in every
+     look and both modes. lint.py measures it (selection_contrast.py). -moz- is its own rule: in one
+     list with ::selection, a browser that does not know it drops both. */
+  ::selection{background:var(--ink); color:var(--panel)}
+  ::-moz-selection{background:var(--ink); color:var(--panel)}
   .eyebrow{font-size:.72rem; letter-spacing:.16em; text-transform:uppercase; color:var(--acc); font-weight:700; margin-bottom:14px}
   .lede{font-size:1.06rem; color:var(--muted)}
   header.cover{border-bottom:2px solid var(--acc); padding-bottom:26px; margin-bottom:26px}
@@ -415,6 +422,23 @@
     a{color:#000}
     table.dt tbody tr{content-visibility:visible}
     table.dt tbody tr.hide{display:table-row}
+  }
+
+  /* ============================================================
+     REDUCED MOTION (DESIGN.md, section 4). A reader
+     whose system asks for less motion keeps every fade and color
+     change and loses the travel: the rail's slide, the tooltip's rise,
+     the chevron's turn, the readout's rise, the drag lift, the bar's
+     growth. :root lifts the specificity so this outranks the component
+     library's own selectors. The rail's eased click scroll is script,
+     and stays: it is a short, reader-started jump.
+     ============================================================ */
+  @media (prefers-reduced-motion: reduce){
+    :root #sidenav, :root #tip, :root .chart-read, :root .rank li,
+    :root details.fold > summary::before, :root details.snip > summary::before,
+    :root .gtrack > span{
+      transition-property:opacity, color, background-color, border-color;
+    }
   }
 
   /* ---- gallery ---- */
@@ -1210,7 +1234,7 @@
   </section>
   <section id="c-flow">
     <div class="sec-num">The picture: a lane-and-column map of a whole path</div>
-    <p class="sub"><b>Every page that explains a workflow, a system, a pipeline or a path opens its explanation with this</b>: one map of the whole thing, before any prose, so the reader sees the shape before the detail. Boxes are real things with their real names; the lanes are who or what acts; the arrows are the path. It is inline SVG drawn on the tokens, so it works in both themes, and below 760px the figure scrolls sideways rather than shrinking the labels to nothing. Everything lives in the JSON block inside the figure, so a change is a data edit and there is no hand-placed coordinate to go stale. A workflow page with no picture is not done.</p>
+    <p class="sub"><b>Every page that explains a workflow, a system, a pipeline or a path opens its explanation with this</b>: one map of the whole thing, before any prose, so the reader sees the shape before the detail. Boxes are real things with their real names; the lanes are who or what acts; the arrows are the path. It is inline SVG drawn on the tokens, so it works in both themes, and below 760px the figure scrolls sideways rather than shrinking the labels to nothing. Everything lives in the JSON block inside the figure, so a change is a data edit and there is no hand-placed coordinate to go stale. A workflow page with no picture is not done. <b>A node's tone is one of acc, green, amber, red, violet and ask, or muted for a box that is off</b>: each of the six has the soft fill and the ink note a box is painted with, muted paints the plain panel on purpose, and any other tone filled the box with the panel color in silence, so the lint refuses it; a lane, an edge or a mark takes any house token.</p>
     <div class="demo">
 <figure class="flow" aria-label="How a buyer reply becomes a live link">
   <script type="application/json" class="flow-data">
@@ -1223,7 +1247,7 @@
     ],
     "nodes": [
       {"id": "send", "col": 0, "lane": "machine", "label": "The email goes out", "note": "LIVE", "tone": "green"},
-      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc-2"},
+      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc"},
       {"id": "draft", "col": 2, "lane": "machine", "label": "The offer drafts itself", "note": "LIVE", "tone": "green"},
       {"id": "send2", "col": 3, "lane": "us", "label": "We click send", "note": "the gate", "tone": "violet"},
       {"id": "pick", "col": 4, "lane": "buyer", "label": "They pick and pay", "note": "email only", "tone": "amber"},
@@ -1260,7 +1284,7 @@
     ],
     "nodes": [
       {"id": "send", "col": 0, "lane": "machine", "label": "The email goes out", "note": "LIVE", "tone": "green"},
-      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc-2"},
+      {"id": "reply", "col": 1, "lane": "buyer", "label": "They reply", "note": "the ask", "tone": "acc"},
       {"id": "draft", "col": 2, "lane": "machine", "label": "The offer drafts itself", "note": "LIVE", "tone": "green"},
       {"id": "send2", "col": 3, "lane": "us", "label": "We click send", "note": "the gate", "tone": "violet"},
       {"id": "pick", "col": 4, "lane": "buyer", "label": "They pick and pay", "note": "email only", "tone": "amber"},
