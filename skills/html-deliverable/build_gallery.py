@@ -60,20 +60,6 @@ def esc(text: str) -> str:
     return html.escape(text, quote=False)
 
 
-def clip(label: str, limit: int = 22) -> str:
-    """Nav labels cut on a word boundary, the same rule build.py uses.
-
-    A long label widens the whole rail, and a rail wider than the gutter hides itself rather
-    than covering the column, which is how the gallery lost its nav below 1920.
-    """
-    if len(label) <= limit:
-        return label
-    cut = label[: limit - 1]
-    if " " in cut:
-        cut = cut[: cut.rfind(" ")]
-    return cut.rstrip(" ,.;:") + "…"
-
-
 # --------------------------------------------------------------------------- the catalogue
 
 COMPONENTS: list[Component] = [
@@ -2221,11 +2207,6 @@ COMPONENTS: list[Component] = [
 # --------------------------------------------------------------------------- assembly
 
 
-def replace_block(text: str, name: str, body: str) -> str:
-    pattern = rf"(<!--\s*{re.escape(name)}\s*-->)(.*?)(<!--\s*/{re.escape(name)}\s*-->)"
-    return re.sub(pattern, lambda m: m.group(1) + body + m.group(3), text, flags=re.S)
-
-
 def snippet_block(label: str, code: str, language: str) -> str:
     if not code.strip():
         return ""
@@ -2340,6 +2321,11 @@ def nav_groups() -> str:
     Two dozen flat entries is a rail the reader has to zoom out to 50 percent to read. The groups
     are the top level; the template's script opens the one the reader is in.
     """
+    # Labels are cut on a word boundary, by the same clip build.py uses: a long label widens the
+    # whole rail, and a rail wider than the gutter hides itself rather than covering the column,
+    # which is how the gallery lost its nav below 1920.
+    from build import clip  # late: build.py imports this module for the catalogue
+
     lines: list[str] = []
     for name, members in grouped():
         lines.append(f'  <div class="nav-group" data-part="{anchor(slug(name))}">')
@@ -2436,7 +2422,7 @@ def build(destination: Path) -> str:
 
     nav = nav_groups()
 
-    from build import DIAGRAM_CSS  # late, for the same cycle reason as the strip below
+    from build import DIAGRAM_CSS, replace_block  # late, for the same cycle reason as the strip below
 
     css = GALLERY_CSS + "\n" + "\n".join(c.css for c in COMPONENTS if c.css)
     if any(c.diagram for c in COMPONENTS):

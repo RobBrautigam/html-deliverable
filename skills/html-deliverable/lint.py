@@ -981,7 +981,6 @@ def top_level_nav_entries(html: str) -> int:
 
 TITLE_RE = re.compile(r"<title[^>]*>(.*?)</title>", re.I | re.S)
 H1_RE = re.compile(r"<h1\b[^>]*>(.*?)</h1>", re.I | re.S)
-TAG_RE = re.compile(r"<[^>]+>")
 # A title that says nothing about the document: the template's own placeholder, the builder's
 # old fallback, and the plain words a lazy title is made of.
 GENERIC_TITLES = frozenset({
