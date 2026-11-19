@@ -458,7 +458,6 @@ def money_in_figures(html: str) -> list[str]:
 # Markdown is NOT processed inside a raw HTML block. A fold body written in Markdown therefore
 # ships to the reader exactly as typed: literal asterisks where bold was meant, and a pipe table
 # as a row of pipes.
-FOLD_BODY_RE = re.compile(r'<div[^>]*class="[^"]*\bfold-body\b[^"]*"[^>]*>(.*?)</div>', re.S | re.I)
 RAW_BLOCK_RE = re.compile(
     r'<(?:div|section|aside|details)[^>]*class="[^"]*\b(?:fold-body|ros|asks|stage-summary|verdict|callout)\b[^"]*"[^>]*>(.*?)</(?:div|section|aside|details)>',
     re.S | re.I,
@@ -1042,7 +1041,6 @@ MOVING_PROPERTIES = {
     "transform", "translate", "rotate", "scale", "width", "height", "top", "left", "right",
     "bottom", "inset", "margin", "margin-top", "margin-right", "margin-bottom", "margin-left",
 }
-CSS_WIDE_KEYWORDS = {"none", "inherit", "initial", "unset", "revert", "revert-layer"}
 TIME_RE = re.compile(r"^-?[\d.]+m?s$", re.I)
 EASING_RE = re.compile(r"^(?:ease(?:-in|-out|-in-out)?|linear|step-start|step-end|allow-discrete|normal)$", re.I)
 TRANSITION_DECL_RE = re.compile(r"(?<![\w-])(?:-(?:webkit|moz|ms|o)-)?transition(-property)?\s*:\s*([^;{}]*)", re.I)

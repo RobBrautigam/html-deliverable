@@ -98,7 +98,6 @@ PLACEHOLDER_RE = re.compile(r"\{\{[A-Z_]+\}\}")
 HREF_RE = re.compile(r'href="(https?://[^"]+)"')
 # A character reference closed by a semicolon: the only kind harvest_links decodes.
 ATTR_REF_RE = re.compile(r"&(?:#[0-9]+|#[xX][0-9a-fA-F]+|[A-Za-z][A-Za-z0-9]*);")
-H2_RE = re.compile(r"<h2>(.*?)</h2>", re.S)
 
 # Every destination that leaves this document opens in a NEW TAB. A reader keeps a deliverable
 # open in one of many tabs; a link that navigates the page away loses their place in the document
@@ -547,7 +546,6 @@ def markdown_to_sections(
 SLIDER_RE = re.compile(r"^\[slider:\s*(.+?)\]\s*$", re.M)
 TABLE_HINT_RE = re.compile(r"<p>\[table:\s*(plain|sortable)\]</p>\s*", re.I)
 TASK_ITEM_RE = re.compile(r"<li>\s*\[([ xX])\]\s*(.*?)</li>", re.S)
-TABLE_BLOCK_RE = re.compile(r"<table>(.*?)</table>", re.S | re.I)
 
 _slider_seq = itertools.count(1)
 _checklist_seq = itertools.count(1)
