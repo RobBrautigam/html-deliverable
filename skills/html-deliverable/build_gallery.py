@@ -2422,7 +2422,7 @@ def build(destination: Path) -> str:
 
     nav = nav_groups()
 
-    from build import DIAGRAM_CSS, replace_block  # late, for the same cycle reason as the strip below
+    from build import DIAGRAM_CSS, replace_block  # late: build.py imports this module for the catalogue
 
     css = GALLERY_CSS + "\n" + "\n".join(c.css for c in COMPONENTS if c.css)
     if any(c.diagram for c in COMPONENTS):
