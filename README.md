@@ -192,9 +192,9 @@ python skills/html-deliverable/lint.py out.html --audience external --allow "Acm
   fixture that breaks exactly that rule; two boxes on top of each other and a tag over somebody
   else's box are measured in the same render but have no fixture.
 - **Every dollar amount carries a dollar sign**, in prose, in tables, in cards and inside a
-  figure's JSON block. Four arms catch an amount that lost its sign: three fire on one fixture and
-  stay quiet on its corrected twin; the fourth, a currency code before the number or after one
-  with no sign, is tested on inline pages.
+  figure's JSON block. Four arms: three catch an amount that lost its sign, fire on one fixture and
+  stay quiet on its corrected twin; the fourth refuses a currency code written before the number,
+  or after a number with no sign, and is tested on inline pages.
 - **The flat page.** Over about 3,000 prose words, every long section must open with a summary
   block and the page must use color to mark meaning. Missing either half is the hit.
 - **Selected text has to read.** The page's own text selection is measured against every block
@@ -261,7 +261,7 @@ html-deliverable/
     ├── chartcheck.js            ← drives the line chart and reports what was drawn
     ├── domcheck.js              ← duplicate ids and leaked source, from the parsed DOM
     ├── wall-list.txt            ← the names a delivered page may never carry
-    ├── fixtures/                ← test inputs: rule breakers, two passing twins, a figure once drawn broken
+    ├── fixtures/                ← rule breakers, two passing twins, a figure once drawn broken
     └── test_*.py                ← 474 tests
 ```
 
