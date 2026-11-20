@@ -189,6 +189,22 @@ class TheMoneyRule(unittest.TestCase):
             self.assertEqual(len(failures), 1, (bad, failures))
             self.assertIn("puts the currency code before the number", failures[0])
 
+    def test_the_fix_it_prints_is_the_amount_written_right_whatever_the_spacing(self):
+        """"MXN$1,213.06" has no space to split on, and the message once printed
+        "$MXN$1,213.06 MXN$1,213.06" as the fix. So the WHOLE message is checked, for every
+        spacing the arm accepts, and the fix it prints must itself pass."""
+        fix = "$1,213.06 MXN"
+        for bad in ("MXN$1,213.06", "MXN $1,213.06", "MXN$ 1,213.06", "MXN1,213.06"):
+            with self.subTest(bad=bad):
+                self.assertEqual(
+                    self.money_failures(f"<p>The fan cost {bad} last year.</p>"),
+                    [
+                        f'"{bad}" puts the currency code before the number: the format is the '
+                        f"sign first and the currency after the amount, {fix}"
+                    ],
+                )
+        self.assertEqual(self.money_failures(f"<p>The fan cost {fix} last year.</p>"), [])
+
     def test_a_number_followed_by_a_code_with_no_sign_is_refused(self):
         for bad in ("1,213.06 MXN", "25,000 EUR", "17.00 MXN"):
             failures = self.money_failures(f"<p>The fan cost {bad} last year.</p>")
