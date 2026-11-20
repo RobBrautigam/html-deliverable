@@ -209,6 +209,26 @@ class TheMoneyRule(unittest.TestCase):
                 )
         self.assertEqual(self.money_failures(f"<p>The fan cost {fix} last year.</p>"), [])
 
+    def test_the_fix_carries_the_sign_of_the_currency_it_names(self):
+        """The fix once put a dollar sign on every code: "EUR 1,200" was told to become
+        "$1,200 EUR", which the lint passes and a reader takes for dollars. The sign comes from
+        the code wherever the lint knows that code's sign, and the fix it prints must pass."""
+        for bad, fix in (
+            ("EUR 1,200", "€1,200 EUR"),
+            ("GBP 25,000", "£25,000 GBP"),
+            ("USD 17.00", "$17.00 USD"),
+            ("AUD 1,500.00", "$1,500.00 AUD"),
+        ):
+            with self.subTest(bad=bad):
+                self.assertEqual(
+                    self.money_failures(f"<p>The fan cost {bad} last year.</p>"),
+                    [
+                        f'"{bad}" puts the currency code before the number: the format is the '
+                        f"sign first and the currency after the amount, {fix}"
+                    ],
+                )
+                self.assertEqual(self.money_failures(f"<p>The fan cost {fix} last year.</p>"), [])
+
     def test_a_number_followed_by_a_code_with_no_sign_is_refused(self):
         for bad in ("1,213.06 MXN", "25,000 EUR", "17.00 MXN"):
             failures = self.money_failures(f"<p>The fan cost {bad} last year.</p>")
