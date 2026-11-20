@@ -19,6 +19,7 @@ Thumbs.db
 /out.html
 /out.pdf
 *.local.html
+/tmp/
 
 # The local harness setting that lets a background agent edit this checkout
 .claude/
