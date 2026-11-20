@@ -369,6 +369,10 @@ CURRENCY_CODES = r"(?:USD|MXN|GBP|EUR|CAD|AUD|JPY|CHF)"
 CODE_BEFORE_NUMBER_RE = re.compile(
     r"\b(?P<code>" + CURRENCY_CODES + r")\s?\$?\s?(?P<number>\d{1,3}(?:,\d{3})*(?:\.\d+)?)\b"
 )
+#        The fix carries the sign of the code it names. The lint's sign classes hold $, £ and €
+#        only, so JPY and CHF keep "$" in the fix: a fix the lint refused would send the author in
+#        a circle, and widening the classes would change what the lint refuses.
+SIGN_FOR_CODE = {"USD": "$", "MXN": "$", "CAD": "$", "AUD": "$", "GBP": "£", "EUR": "€"}
 CODE_AFTER_BARE_NUMBER_RE = re.compile(
     r"(?<![$£€\d,.])\b(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s?" + CURRENCY_CODES + r"\b"
 )
@@ -643,7 +647,8 @@ def money_without_a_sign(html: str, prose: str) -> list[str]:
     for match in CODE_BEFORE_NUMBER_RE.finditer(prose):
         key = re.sub(r"\s+", " ", match.group(0)).strip()
         code_first[key] = code_first.get(key, 0) + 1
-        fix_for[key] = f"${match.group('number')} {match.group('code')}"
+        code, number = match.group("code"), match.group("number")
+        fix_for[key] = f"{SIGN_FOR_CODE.get(code, '$')}{number} {code}"
     for key, count in sorted(code_first.items()):
         times = f" ({count} times)" if count > 1 else ""
         hits.append(
