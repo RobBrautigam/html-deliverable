@@ -58,7 +58,11 @@ def render_lint(path: Path, widths: str = "1440") -> list[str]:
 
 
 class FigureGateInversions(unittest.TestCase):
-    """One fixture per rule, each breaking exactly that rule, each refused BY NAME."""
+    """One fixture per rule that has one, each breaking exactly that rule, each refused BY NAME.
+
+    Six of the lint's eight figure rules have a fixture here. Two node boxes on top of each other
+    and a tag pinned over a box that is not its own are measured in the same render and have none.
+    """
 
     def assert_refused(self, fixture: str, phrase: str) -> None:
         failures = render_lint(INVERSIONS / fixture)
@@ -188,6 +192,42 @@ class TheMoneyRule(unittest.TestCase):
             failures = self.money_failures(f"<p>The fan cost {bad} last year.</p>")
             self.assertEqual(len(failures), 1, (bad, failures))
             self.assertIn("puts the currency code before the number", failures[0])
+
+    def test_the_fix_it_prints_is_the_amount_written_right_whatever_the_spacing(self):
+        """"MXN$1,213.06" has no space to split on, and the message once printed
+        "$MXN$1,213.06 MXN$1,213.06" as the fix. So the WHOLE message is checked, for every
+        spacing the arm accepts, and the fix it prints must itself pass."""
+        fix = "$1,213.06 MXN"
+        for bad in ("MXN$1,213.06", "MXN $1,213.06", "MXN$ 1,213.06", "MXN1,213.06"):
+            with self.subTest(bad=bad):
+                self.assertEqual(
+                    self.money_failures(f"<p>The fan cost {bad} last year.</p>"),
+                    [
+                        f'"{bad}" puts the currency code before the number: the format is the '
+                        f"sign first and the currency after the amount, {fix}"
+                    ],
+                )
+        self.assertEqual(self.money_failures(f"<p>The fan cost {fix} last year.</p>"), [])
+
+    def test_the_fix_carries_the_sign_of_the_currency_it_names(self):
+        """The fix once put a dollar sign on every code: "EUR 1,200" was told to become
+        "$1,200 EUR", which the lint passes and a reader takes for dollars. The sign comes from
+        the code wherever the lint knows that code's sign, and the fix it prints must pass."""
+        for bad, fix in (
+            ("EUR 1,200", "€1,200 EUR"),
+            ("GBP 25,000", "£25,000 GBP"),
+            ("USD 17.00", "$17.00 USD"),
+            ("AUD 1,500.00", "$1,500.00 AUD"),
+        ):
+            with self.subTest(bad=bad):
+                self.assertEqual(
+                    self.money_failures(f"<p>The fan cost {bad} last year.</p>"),
+                    [
+                        f'"{bad}" puts the currency code before the number: the format is the '
+                        f"sign first and the currency after the amount, {fix}"
+                    ],
+                )
+                self.assertEqual(self.money_failures(f"<p>The fan cost {fix} last year.</p>"), [])
 
     def test_a_number_followed_by_a_code_with_no_sign_is_refused(self):
         for bad in ("1,213.06 MXN", "25,000 EUR", "17.00 MXN"):

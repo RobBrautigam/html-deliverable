@@ -23,6 +23,7 @@ sys.path.insert(0, str(HERE))
 import build  # noqa: E402
 import build_gallery  # noqa: E402
 import lint  # noqa: E402
+import selection_contrast  # noqa: E402
 
 
 SAMPLE_MD = """# The September record
@@ -178,6 +179,66 @@ class LookTests(TempCase):
                         if re.search(r"#[0-9a-fA-F]{3,8}\b", line):
                             offenders.append(f"{component.cid}: {line.strip()}")
         self.assertEqual(offenders, [], "components must read tokens, never raw hex")
+
+
+class ClientAccentLineTests(TempCase):
+    """DESIGN.md's one-line client accent, put on a built tint page and read from the render.
+
+    The line once named the look alone, `:root[data-look="tint"]`. The template's tint blocks name
+    the look AND the theme, so they outrank it, and on a tint page the line changed nothing in
+    either theme. A line naming every theme took effect, and left dark-theme text on the wash at a
+    contrast of about 1:1. So the line is read from DESIGN.md itself, the page must wear it in the
+    shipped light theme, and the dark theme must still read.
+    """
+
+    LINE_RE = re.compile(r'<style>(:root\[data-look="tint"\][^<]*)</style>')
+    TOKENS = ("--acc", "--acc-2", "--acc-soft", "--ink", "--panel")
+
+    def rendered_tokens(self, page: Path) -> dict[str, dict[str, str]]:
+        try:
+            from playwright.sync_api import sync_playwright
+        except ImportError:
+            self.skipTest("no python playwright: the accent line is measured in a real render")
+        seen: dict[str, dict[str, str]] = {}
+        with sync_playwright() as api:
+            browser = api.chromium.launch()
+            try:
+                view = browser.new_page()
+                view.goto(page.resolve().as_uri())
+                for theme in ("light", "dark"):
+                    seen[theme] = view.evaluate(
+                        "([theme, names]) => { const root = document.documentElement;"
+                        " root.setAttribute('data-theme', theme);"
+                        " const style = getComputedStyle(root);"
+                        " return Object.fromEntries("
+                        "names.map(n => [n, style.getPropertyValue(n).trim()])); }",
+                        [theme, list(self.TOKENS)],
+                    )
+            finally:
+                browser.close()
+        return seen
+
+    def test_the_design_md_line_recolors_a_tint_page_and_the_dark_theme_still_reads(self):
+        lines = self.LINE_RE.findall((HERE / "DESIGN.md").read_text(encoding="utf-8"))
+        self.assertEqual(len(lines), 1, "DESIGN.md carries exactly one client accent line")
+        line = lines[0]
+        declared = {k: v.strip().lower() for k, v in re.findall(r"(--[a-z0-9-]+)\s*:\s*([^;}]+)", line)}
+        self.assertIn("--acc", declared)
+        page = build_page(self.tmp, SAMPLE_MD, "client.md", "--look", "tint")
+        html = page.read_text(encoding="utf-8")
+        # Where DESIGN.md puts it: the end of <head>, after the template's own <style>.
+        page.write_text(html.replace("</head>", f"<style>{line}</style>\n</head>", 1), encoding="utf-8")
+        seen = self.rendered_tokens(page)
+        worn = {token: seen["light"][token].lower() for token in declared}
+        self.assertEqual(worn, declared, "the light theme does not wear the client's accent")
+        dark = {token: selection_contrast.parse_color(seen["dark"][token]) for token in self.TOKENS}
+        for text, ground, what in (("--ink", "--acc-soft", "text on the wash"),
+                                   ("--acc", "--panel", "the accent on a card")):
+            ratio = selection_contrast.contrast(dark[text], dark[ground])
+            self.assertGreaterEqual(
+                ratio, selection_contrast.TEXT_FLOOR,
+                f"dark theme: {what} reads at {ratio:.2f}:1 with the line on",
+            )
 
 
 # --------------------------------------------------------------------------- the width handles

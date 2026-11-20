@@ -28,11 +28,13 @@ What it checks (each maps to a named rule, with the reason it exists):
        column header that names money, or a bare number the page itself writes with a dollar
        sign somewhere else
    10. --playwright renders the page (--widths, default 1440 and 1920; add 390 for the phone
-       check) IN BOTH THEMES and fails on horizontal overflow, and on five things a figure can
-       do that a screenshot never shows: text drawn outside the box it belongs to, a label
-       painted under a shape that covers it, a connector routed through a node, a figure that
-       drew nothing at all, and a figure wider than the column it sits in. The message names the
-       figure, the node and the pixels.
+       check) IN BOTH THEMES and fails on horizontal overflow, on a value that leaves its box, on
+       a section nav taller than the screen, and on eight things a figure can do that a
+       screenshot never shows: text drawn outside the box it belongs to, a label painted under a
+       shape that covers it, a connector routed through a node, two node boxes on top of each
+       other, a tag pinned over a box that is not its own, a figure that drew nothing at all, a
+       figure wider than the column it sits in, and a figure drawn by a superseded copy of the
+       flow renderer. A figure's message names the figure, the node and the pixels.
    11. --pdf writes <file>.pdf (or --pdf-out PATH) through the same browser's print path, so the
        page's own print block is exercised rather than a second layout engine
 
@@ -345,8 +347,10 @@ ZERO_MONEY_RE = re.compile(r"[$£€]\s?0(?:\.00?)?(?![\d.])")
 #
 # An amount without its sign is a number, and a number on a finance page is read as a count. Two
 # real instances: "10,298.92 dollars" in prose, and a bare "14,264" inside a figure whose
-# neighbors all carried signs. The arms below are the ways an amount loses its sign, and each one
-# is proved by its own fixture.
+# neighbors all carried signs. Arms 1 to 3 below are the ways an amount loses its sign: one
+# fixture breaks all three (`fixtures/money-without-signs.html`) and its corrected twin passes
+# (`fixtures/money-with-signs.html`). ARM 4 refuses a currency code written before the number, or
+# after a number with no sign, and is tested on inline pages (`test_figure_gates.py`).
 #
 # ARM 1: the prose calls it dollars. "10,298.92 dollars", "14,264 dollars", "1,200 USD" with no
 #        mark in front of the number.
@@ -361,9 +365,14 @@ DOLLARS_WORD_RE = re.compile(
 #        refused: a currency code before a number ("MXN 1,234", "USD 17.00", "GBP 25,000"), and a
 #        number followed by a code with no sign in front ("1,234.00 MXN", "25,000 EUR").
 CURRENCY_CODES = r"(?:USD|MXN|GBP|EUR|CAD|AUD|JPY|CHF)"
+#        The pattern names its two parts, and the fix the message prints is built from them.
 CODE_BEFORE_NUMBER_RE = re.compile(
-    r"\b" + CURRENCY_CODES + r"\s?\$?\s?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\b"
+    r"\b(?P<code>" + CURRENCY_CODES + r")\s?\$?\s?(?P<number>\d{1,3}(?:,\d{3})*(?:\.\d+)?)\b"
 )
+#        The fix carries the sign of the code it names. The lint's sign classes hold $, £ and €
+#        only, so JPY and CHF keep "$" in the fix: a fix the lint refused would send the author in
+#        a circle, and widening the classes would change what the lint refuses.
+SIGN_FOR_CODE = {"USD": "$", "MXN": "$", "CAD": "$", "AUD": "$", "GBP": "£", "EUR": "€"}
 CODE_AFTER_BARE_NUMBER_RE = re.compile(
     r"(?<![$£€\d,.])\b(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s?" + CURRENCY_CODES + r"\b"
 )
@@ -631,17 +640,20 @@ def money_without_a_sign(html: str, prose: str) -> list[str]:
 
     # ARM 4, both shapes. "USD 17.00" is caught by the code-before-number arm and not repeated by
     # the code-after arm, because that arm refuses a numeral preceded by a digit or a sign only.
+    # The fix comes from the match's own parts, never from splitting the token on a space:
+    # "MXN$1,213.06" has none, and the split once printed "$MXN$1,213.06 MXN$1,213.06" as the fix.
     code_first: dict[str, int] = {}
+    fix_for: dict[str, str] = {}
     for match in CODE_BEFORE_NUMBER_RE.finditer(prose):
         key = re.sub(r"\s+", " ", match.group(0)).strip()
         code_first[key] = code_first.get(key, 0) + 1
+        code, number = match.group("code"), match.group("number")
+        fix_for[key] = f"{SIGN_FOR_CODE.get(code, '$')}{number} {code}"
     for key, count in sorted(code_first.items()):
         times = f" ({count} times)" if count > 1 else ""
-        code = key.split()[0]
-        number = key.split()[-1].lstrip("$")
         hits.append(
             f'"{key}"{times} puts the currency code before the number: the format is the sign '
-            f"first and the currency after the amount, ${number} {code}"
+            f"first and the currency after the amount, {fix_for[key]}"
         )
     code_after: dict[str, int] = {}
     for match in CODE_AFTER_BARE_NUMBER_RE.finditer(prose):

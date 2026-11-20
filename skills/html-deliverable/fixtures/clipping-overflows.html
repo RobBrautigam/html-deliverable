@@ -12,9 +12,11 @@
   number spill sideways INSIDE a page that does not overflow at all, which is why the page-level
   horizontal-overflow check passes and the reader still sees a number running out of its box.
 
-  Its twin, `clipping-wraps.html`, is byte-for-byte the same page except that `.stat .num` may
-  wrap. The gate must FAIL on this file and PASS on that one, at both widths and in both themes.
-  Nothing else differs, so a gate that treats them the same is measuring something else.
+  Its twin, `clipping-wraps.html`, carries the same cards with the same values, and its CSS rules
+  differ only in whether `.stat .num` and `.stat .lbl` may wrap; the title, the heading and these
+  comments differ too. The gate must FAIL on this file and PASS on that one, at both widths and in
+  both themes. Nothing else in the cards differs, so a gate that treats them the same is measuring
+  something else.
 -->
 <style>
   :root { --ink:#1a1a1a; --line:#dcdcdc; --paper:#ffffff; --muted:#666666; }
