@@ -55,11 +55,18 @@ One file carries both. The look is an attribute on `<html>`, so switching it mov
 surfaces. An author who knows the audience states it rather than relying on `auto`.
 
 **The accent is swappable for a client build.** A client one-pager wears the client's own colors
-(the standing client-build rule). That is one line, and it never touches the look:
+(the standing client-build rule). That is one line at the end of `<head>`, after the template's own
+`<style>`, and it never touches the look:
 
 ```html
-<style>:root[data-look="tint"]{--acc:#03045e; --acc-2:#017194; --acc-soft:#e4f1f6}</style>
+<style>:root[data-look="tint"][data-theme="light"]{--acc:#03045e; --acc-2:#017194; --acc-soft:#e4f1f6}</style>
 ```
+
+It names both attributes because the template's tint blocks do: a line naming the look alone is
+outranked and changes nothing, and the same line placed before the template's `<style>` loses the
+tie. It recolors the light theme, the one every page ships in. The dark toggle keeps the house's
+dark accent, whose wash and ink are a matched pair; a client's own dark colors are a second line of
+the same shape with `data-theme="dark"`, with a wash dark enough for light text to read on it.
 
 The tint look's own blue is a HOUSE blue, deliberately not any client's brand navy. Wearing a
 client's palette is a per-document override, never a change to this file.
