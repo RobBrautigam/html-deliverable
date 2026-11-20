@@ -361,8 +361,9 @@ DOLLARS_WORD_RE = re.compile(
 #        refused: a currency code before a number ("MXN 1,234", "USD 17.00", "GBP 25,000"), and a
 #        number followed by a code with no sign in front ("1,234.00 MXN", "25,000 EUR").
 CURRENCY_CODES = r"(?:USD|MXN|GBP|EUR|CAD|AUD|JPY|CHF)"
+#        The pattern names its two parts, and the fix the message prints is built from them.
 CODE_BEFORE_NUMBER_RE = re.compile(
-    r"\b" + CURRENCY_CODES + r"\s?\$?\s?(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\b"
+    r"\b(?P<code>" + CURRENCY_CODES + r")\s?\$?\s?(?P<number>\d{1,3}(?:,\d{3})*(?:\.\d+)?)\b"
 )
 CODE_AFTER_BARE_NUMBER_RE = re.compile(
     r"(?<![$£€\d,.])\b(\d{1,3}(?:,\d{3})*(?:\.\d+)?)\s?" + CURRENCY_CODES + r"\b"
@@ -631,17 +632,19 @@ def money_without_a_sign(html: str, prose: str) -> list[str]:
 
     # ARM 4, both shapes. "USD 17.00" is caught by the code-before-number arm and not repeated by
     # the code-after arm, because that arm refuses a numeral preceded by a digit or a sign only.
+    # The fix comes from the match's own parts, never from splitting the token on a space:
+    # "MXN$1,213.06" has none, and the split once printed "$MXN$1,213.06 MXN$1,213.06" as the fix.
     code_first: dict[str, int] = {}
+    fix_for: dict[str, str] = {}
     for match in CODE_BEFORE_NUMBER_RE.finditer(prose):
         key = re.sub(r"\s+", " ", match.group(0)).strip()
         code_first[key] = code_first.get(key, 0) + 1
+        fix_for[key] = f"${match.group('number')} {match.group('code')}"
     for key, count in sorted(code_first.items()):
         times = f" ({count} times)" if count > 1 else ""
-        code = key.split()[0]
-        number = key.split()[-1].lstrip("$")
         hits.append(
             f'"{key}"{times} puts the currency code before the number: the format is the sign '
-            f"first and the currency after the amount, ${number} {code}"
+            f"first and the currency after the amount, {fix_for[key]}"
         )
     code_after: dict[str, int] = {}
     for match in CODE_AFTER_BARE_NUMBER_RE.finditer(prose):
