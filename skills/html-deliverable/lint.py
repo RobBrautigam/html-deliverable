@@ -28,11 +28,13 @@ What it checks (each maps to a named rule, with the reason it exists):
        column header that names money, or a bare number the page itself writes with a dollar
        sign somewhere else
    10. --playwright renders the page (--widths, default 1440 and 1920; add 390 for the phone
-       check) IN BOTH THEMES and fails on horizontal overflow, and on five things a figure can
+       check) IN BOTH THEMES and fails on horizontal overflow, and on eight things a figure can
        do that a screenshot never shows: text drawn outside the box it belongs to, a label
-       painted under a shape that covers it, a connector routed through a node, a figure that
-       drew nothing at all, and a figure wider than the column it sits in. The message names the
-       figure, the node and the pixels.
+       painted under a shape that covers it, a connector routed through a node, two node boxes
+       on top of each other, a tag pinned over a box that is not its own, a figure that drew
+       nothing at all, a figure wider than the column it sits in, and a figure drawn by a
+       superseded copy of the flow renderer. The message names the figure, the node and the
+       pixels.
    11. --pdf writes <file>.pdf (or --pdf-out PATH) through the same browser's print path, so the
        page's own print block is exercised rather than a second layout engine
 
@@ -345,8 +347,10 @@ ZERO_MONEY_RE = re.compile(r"[$£€]\s?0(?:\.00?)?(?![\d.])")
 #
 # An amount without its sign is a number, and a number on a finance page is read as a count. Two
 # real instances: "10,298.92 dollars" in prose, and a bare "14,264" inside a figure whose
-# neighbors all carried signs. The arms below are the ways an amount loses its sign, and each one
-# is proved by its own fixture.
+# neighbors all carried signs. Arms 1 to 3 below are the ways an amount loses its sign: one
+# fixture breaks all three (`fixtures/money-without-signs.html`) and its corrected twin passes
+# (`fixtures/money-with-signs.html`). ARM 4 refuses a currency code written before the number, or
+# after a number with no sign, and is tested on inline pages (`test_figure_gates.py`).
 #
 # ARM 1: the prose calls it dollars. "10,298.92 dollars", "14,264 dollars", "1,200 USD" with no
 #        mark in front of the number.

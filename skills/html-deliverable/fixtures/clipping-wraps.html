@@ -7,10 +7,11 @@
 <!--
   THE PASSING HALF of the clipping gate's inversion proof.
 
-  Byte-for-byte the same page as `clipping-overflows.html`, with the SAME values in the SAME
-  cards, except that `.stat .num` is allowed to wrap. The gate must PASS here and FAIL there.
+  The same page as `clipping-overflows.html`, with the SAME values in the SAME cards, except that
+  `.stat .num` and `.stat .lbl` are allowed to wrap (the title, the heading and these comments
+  differ too). The gate must PASS here and FAIL there.
 
-  The point of the pair is that the difference is one CSS declaration and nothing else: not the
+  The point of the pair is that the cards differ only in whether their text may wrap: not the
   content, not the widths, not the theme. A gate that passes both is not measuring the box, and a
   gate that fails both is measuring the text.
 -->

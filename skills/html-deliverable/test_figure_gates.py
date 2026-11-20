@@ -58,7 +58,11 @@ def render_lint(path: Path, widths: str = "1440") -> list[str]:
 
 
 class FigureGateInversions(unittest.TestCase):
-    """One fixture per rule, each breaking exactly that rule, each refused BY NAME."""
+    """One fixture per rule that has one, each breaking exactly that rule, each refused BY NAME.
+
+    Six of the lint's eight figure rules have a fixture here. Two node boxes on top of each other
+    and a tag pinned over a box that is not its own are measured in the same render and have none.
+    """
 
     def assert_refused(self, fixture: str, phrase: str) -> None:
         failures = render_lint(INVERSIONS / fixture)
