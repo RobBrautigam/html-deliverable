@@ -158,20 +158,21 @@ so a look change is one attribute rather than a rewrite.
 </p>
 
 `components.html` is generated from the same catalogue the builder imports, so a component's demo
-and its copy-paste snippet are the same text by construction. Thirty-three components: stat rows,
-status chips, verdict and warn boxes, part summary strips with fold-outs, a questions block, a
-lane-and-column workflow map, four diagram kinds, facts grids, key-link tables, a grouped bar, a
-filterable sortable table, a line chart with a crosshair readout, sliders, an ROI calculator, a
-drag-rank list, a checklist, a decision list with a copy-out block, a run-of-show, a timeline, a
-comparison, a problem-to-solution block, a countdown, and the four every page carries.
+and its copy-paste snippet are the same text by construction. Thirty-three components: part
+headings, stat rows, status chips, verdict and warn boxes, part summary strips with fold-outs, a
+questions block, a lane-and-column workflow map, four diagram kinds, facts grids, key-link tables,
+a grouped bar, a filterable sortable table, a line chart with a crosshair readout, sliders, an ROI
+calculator, a drag-rank list, a checklist, a decision list with a copy-out block, a run-of-show, a
+timeline, a comparison, a problem-to-solution block, a paste block, a countdown, the classic
+header, an opt-in maker's mark, and the four every page carries.
 
 Open it in a browser before building anything non-trivial.
 
 ### A lint that refuses, rather than a style guide nobody reads
 
 ```bash
-python lint.py out.html --playwright --money --widths 1440,1920,390
-python lint.py out.html --audience external --allow "Acme"
+python skills/html-deliverable/lint.py out.html --playwright --money --widths 1440,1920,390
+python skills/html-deliverable/lint.py out.html --audience external --allow "Acme"
 ```
 
 - **The wall list.** No company or client name the page was not given, read over the WHOLE file:
@@ -182,14 +183,18 @@ python lint.py out.html --audience external --allow "Acme"
 - **No value may leave its box.** A `white-space: nowrap` value too long for its card spills
   INSIDE a page that does not overflow at all, so the page-level check passes and the reader still
   sees a number running out of its box. The render measures every element a value can sit in, at
-  every width and in both themes. Proved by inversion on a pair of fixtures that differ in exactly
-  one CSS declaration.
-- **Figures are measured, not looked at.** Seven refusals, each proved by a fixture that breaks
-  exactly that rule: text outside the box it belongs to, a label painted under a shape that covers
-  it, a connector routed through a node, two boxes on top of each other, a tag over somebody
-  else's box, a figure that drew nothing, and a figure wider than its column.
+  every width and in both themes. Proved by inversion on a pair of fixtures whose CSS rules differ
+  only in whether `.stat .num` and `.stat .lbl` may wrap.
+- **Figures are measured, not looked at.** Eight refusals: text outside the box it belongs to, a
+  label painted under a shape that covers it, a connector routed through a node, two boxes on top
+  of each other, a tag over somebody else's box, a figure that drew nothing, a figure wider than
+  its column, and a figure drawn by a superseded copy of the renderer. Six are each proved by a
+  fixture that breaks exactly that rule; two boxes on top of each other and a tag over somebody
+  else's box are measured in the same render but have no fixture.
 - **Every dollar amount carries a dollar sign**, in prose, in tables, in cards and inside a
-  figure's JSON block. Three ways an amount loses its sign, three arms, three fixtures.
+  figure's JSON block. Four arms catch an amount that lost its sign: three fire on one fixture and
+  stay quiet on its corrected twin; the fourth, a currency code before the number or after one
+  with no sign, is tested on inline pages.
 - **The flat page.** Over about 3,000 prose words, every long section must open with a summary
   block and the page must use color to mark meaning. Missing either half is the hit.
 - **Selected text has to read.** The page's own text selection is measured against every block
@@ -256,7 +261,7 @@ html-deliverable/
     ├── chartcheck.js            ← drives the line chart and reports what was drawn
     ├── domcheck.js              ← duplicate ids and leaked source, from the parsed DOM
     ├── wall-list.txt            ← the names a delivered page may never carry
-    ├── fixtures/                ← the inversion proofs: one file per rule, each breaking it
+    ├── fixtures/                ← test inputs: rule breakers, two passing twins, a figure once drawn broken
     └── test_*.py                ← 474 tests
 ```
 
